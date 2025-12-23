@@ -1,0 +1,5 @@
+{
+  "message": "Failed to generate document: Template not found: megallapodas_hem",
+  "stack": "Error: Failed to generate document: Template not found: megallapodas_hem\n    at DocumentGenerator.generate (C:\\Users\\Admin\\OneDrive\\Asztali gép\\Antigravity\\Padlás födém szigetelés dokumentum managment\\backend\\services\\documentGenerator.js:218:19)\n    at C:\\Users\\Admin\\OneDrive\\Asztali gép\\Antigravity\\Padlás födém szigetelés dokumentum managment\\backend\\routes\\documents.js:120:48\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)",
+  "type": "ROUTE_ERROR"
+}

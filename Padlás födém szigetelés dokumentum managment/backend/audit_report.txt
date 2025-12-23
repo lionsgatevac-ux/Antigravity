@@ -1,0 +1,12 @@
+--- TEMPLATE AUDIT REPORT ---
+Found strict text tags [[alairasugyfel]]: 0
+Found strict image tags [[%alairasugyfel]]: 1
+Found 'alairasugyfel' string total occurrences: 2
+
+Contexts found:
+
+--- MATCH #1 ---
+:szCs w:val="21"/></w:rPr></w:pPr><w:r><w:rPr><w:sz w:val="21"/><w:szCs w:val="21"/></w:rPr><w:t>[[%alairasugyfel]]</w:t><w:br/><w:t>mint</w:t></w:r><w:r><w:rPr><w:b/><w:bCs/><w:sz w:val="21"/><w:szCs
+
+--- MATCH #2 ---
+                       [[</w:t></w:r><w:r><w:rPr><w:sz w:val="21"/><w:szCs w:val="21"/></w:rPr><w:t>alairasugyfel</w:t></w:r><w:r><w:rPr><w:sz w:val="21"/><w:szCs w:val="21"/></w:rPr><w:t>]]</w:t></w:

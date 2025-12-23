@@ -1,0 +1,29 @@
+{
+    "name": "bozso-padlas-system",
+    "version": "1.0.0",
+    "description": "Padlásfödém szigetelés dokumentum menedzsment rendszer - BO-ZSO Hungary Kft",
+    "private": true,
+    "workspaces": [
+        "frontend",
+        "backend"
+    ],
+    "scripts": {
+        "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+        "dev:frontend": "npm run dev --workspace=frontend",
+        "dev:backend": "npm run dev --workspace=backend",
+        "build": "npm run build --workspace=frontend",
+        "test": "npm run test --workspaces",
+        "install:all": "npm install && npm install --workspaces"
+    },
+    "keywords": [
+        "padlas",
+        "szigeteles",
+        "dokumentum",
+        "PWA"
+    ],
+    "author": "BO-ZSO Hungary Kft",
+    "license": "UNLICENSED",
+    "devDependencies": {
+        "concurrently": "^8.2.2"
+    }
+}

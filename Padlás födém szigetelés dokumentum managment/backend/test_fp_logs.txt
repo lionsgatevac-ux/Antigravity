@@ -1,0 +1,40 @@
+???? Config: Using local development configuration with explicit password.
+Testing floor plan generation for BOZSO-2025-0121...
+??? Database connected successfully
+Executed query {
+  text: 'SELECT p.*, pd.*, c.full_name as full_name, c.id_number \n' +
+    '             FROM projects p \n' +
+    '             LEFT JOIN project_details pd ON p.id = pd.project_id \n' +
+    '             LEFT JOIN customers c ON pd.customer_id = c.id \n' +
+    '             WHERE p.contract_number = $1',
+  duration: 129,
+  rows: 1
+}
+Executed query {
+  text: "SELECT file_path FROM photos WHERE project_id = $1 AND photo_type = 'floor_plan' ORDER BY taken_at DESC LIMIT 1",
+  duration: 2,
+  rows: 0
+}
+No floor plan found in DB for this project.
+--- START DOCUMENT GENERATION ---
+Template: kivitelezoi_nyilatkozat
+[DEBUG] Loading template from: C:\Users\Admin\OneDrive\Asztali g??p\Antigravity\Padl??s f??d??m szigetel??s dokumentum managment\templates\kivitelezoi_nyilatkozat.docx
+[DEBUG] Template file size: 2753373 bytes
+Template loaded. Delimiters: [[ ]]
+[DocumentGenerator] GJ is 0, recalculating from net_area 138.50
+[ImageModule] getImage called for tag: alaprajz
+[ImageModule] Base64 tag detected
+[ImageModule] getSize called for tag: alaprajz
+[ImageModule] Dimensions: 1x1
+[ImageModule] tagName is alaprajz, using maxWidth 600
+[ImageModule] getImage called for tag: alaprajz
+[ImageModule] Base64 tag detected
+[ImageModule] getSize called for tag: alaprajz
+[ImageModule] Dimensions: 1x1
+[ImageModule] tagName is alaprajz, using maxWidth 600
+[ImageModule] getImage called for tag: alairasugyfel
+[ImageModule] Base64 tag detected
+[ImageModule] getSize called for tag: alairasugyfel
+[ImageModule] Dimensions: 776x386
+Document generated successfully: kivitelezoi_nyilatkozat_BOZSO-2025-0121.docx
+File path: C:\Users\Admin\OneDrive\Asztali g??p\Antigravity\Padl??s f??d??m szigetel??s dokumentum managment\backend\generated\kivitelezoi_nyilatkozat_BOZSO-2025-0121.docx

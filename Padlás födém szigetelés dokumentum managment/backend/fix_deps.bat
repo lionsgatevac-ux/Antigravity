@@ -1,0 +1,9 @@
+@echo off
+echo Cleaning up...
+if exist node_modules rmdir /s /q node_modules
+if exist package-lock.json del /f /q package-lock.json
+echo Cleaning cache...
+call npm cache clean --force
+echo Installing dependencies...
+call npm install
+echo Done.

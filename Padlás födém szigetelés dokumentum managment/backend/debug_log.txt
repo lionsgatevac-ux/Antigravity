@@ -1,0 +1,6 @@
+{
+  "templateContainsImageTag": false,
+  "templateContainsTextTag": false,
+  "imageModuleLoaded": true,
+  "moduleError": null
+}

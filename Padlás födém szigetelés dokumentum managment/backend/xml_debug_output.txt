@@ -1,0 +1,3 @@
+FOUND "alairasugyfel" at index 97669
+CONTEXT:
+jc w:val="both"/><w:rPr><w:sz w:val="21"/><w:szCs w:val="21"/></w:rPr></w:pPr><w:r><w:rPr><w:sz w:val="21"/><w:szCs w:val="21"/></w:rPr><w:t xml:space="preserve">                                   [[%alairasugyfel]]</w:t></w:r><w:r><w:rPr><w:sz w:val="21"/><w:szCs w:val="21"/></w:rPr><w:tab/><w:t xml:space="preserve">            </w:t></w:r></w:p><w:tbl><w:tblPr><w:tblStyle w:val="1"/><w:tblW w:w=

@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Build outputs
+dist/
+build/
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Generated files
+backend/uploads/
+backend/generated/
+frontend/dist/
+
+# Database
+*.db
+*.sqlite
+*.sql
+
+# Temporary & Archive files
+tmp/
+temp/
+*.zip
+sporolj_migration.zip
+sporolj_update.zip
+
+# Scripts
+cleanup_system.js
+export_db*.js
+package_app*.js
+package_update.js

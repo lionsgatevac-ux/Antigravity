@@ -1,0 +1,10 @@
+
+FOUND "alairasugyfel" at index 188403
+CONTEXT:
+w:type="spellStart"/><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:eastAsia="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/><w:sz w:val="21"/><w:szCs w:val="21"/></w:rPr><w:t>%alairasugyfel</w:t></w:r><w:proofErr w:type="spellEnd"/><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:eastAsia="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/><w:sz w:val="21"/
+----------------
+
+FOUND "%alairasugyfel" at index 188402
+CONTEXT:
+ w:type="spellStart"/><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:eastAsia="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/><w:sz w:val="21"/><w:szCs w:val="21"/></w:rPr><w:t>%alairasugyfel</w:t></w:r><w:proofErr w:type="spellEnd"/><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:eastAsia="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/><w:sz w:val="21"
+----------------

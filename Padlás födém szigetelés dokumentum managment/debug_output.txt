@@ -1,0 +1,32 @@
+
+📋 Testing project: BOZSO-2025-0024 (ID: 64d51278-1757-4fa1-afdf-460725b218d4)
+
+1️⃣ PROJECT DATA FROM DATABASE:
+   structure_type: vasbeton
+   structure_thickness: 20
+   unheated_space_type: egyéb
+   unheated_space_area: 45.00
+   unheated_space_name: 
+
+2️⃣ TEMPLATE DATA (what we send to documentGenerator):
+   structure_type: vasbeton
+   structure_thickness: 20
+   unheated_space_type: egyéb
+   unheated_space_area: 45.00
+
+3️⃣ PREPARED DATA (after documentGenerator.prepareData):
+   fa: 
+   facm: 
+   acel: 
+   acelcm: 
+   garazs: 
+   garazsnm: 
+   bármi: 
+   bárminm: 
+   vasbeton: X
+   vasbetoncm: 20
+   monolit: 
+   monolitcm: 
+   egyéb: X
+   egyébnm: 45.00
+   egyébnev: 
