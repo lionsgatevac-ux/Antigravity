@@ -117,6 +117,12 @@ const ProjectList = () => {
                                     <span className="label">Létrehozva:</span>
                                     <span className="value">{formatDate(project.created_at)}</span>
                                 </div>
+                                {project.owner_company && (
+                                    <div className="info-row">
+                                        <span className="label">Kivitelező:</span>
+                                        <span className="value text-blue-400">{project.owner_company}</span>
+                                    </div>
+                                )}
                             </div>
                         </Link>
                     ))}

@@ -5,6 +5,7 @@ import { projectsAPI } from '../services/api';
 import { useApp } from '../context/AppContext';
 import { calculateNetArea, calculateEnergySaving, calculateContractorFee, formatCurrency } from '../utils/calculations';
 import { validateForm, required, email, phone, positiveNumber } from '../utils/validation';
+import { getCityByZip, getZipByCity } from '../utils/addressUtils';
 import './NewProject.css';
 
 const NewProject = () => {
@@ -63,15 +64,87 @@ const NewProject = () => {
 
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
+    const [isAddressSame, setIsAddressSame] = useState(formData.property.address_city === '' ||
+        (formData.customer.address_city === formData.property.address_city &&
+            formData.customer.address_street === formData.property.address_street));
 
     const handleInputChange = (section, field, value) => {
-        setFormData(prev => ({
-            ...prev,
-            [section]: {
-                ...prev[section],
-                [field]: value
+        setFormData(prev => {
+            const newData = {
+                ...prev,
+                [section]: {
+                    ...prev[section],
+                    [field]: value
+                }
+            };
+
+            // If it's a customer address field and sync is on, update property address too
+            const addressFields = [
+                'address_postal_code',
+                'address_city',
+                'address_street',
+                'address_house_number'
+            ];
+
+            if (isAddressSame && section === 'customer' && addressFields.includes(field)) {
+                newData.property = {
+                    ...newData.property,
+                    [field]: value
+                };
             }
-        }));
+
+            return newData;
+        });
+
+        // Auto-fill city by postal code
+        if (field === 'address_postal_code' && value.length === 4) {
+            const detectedCity = getCityByZip(value);
+            if (detectedCity) {
+                setFormData(prev => ({
+                    ...prev,
+                    [section]: {
+                        ...prev[section],
+                        address_city: detectedCity
+                    }
+                }));
+                // If it's the customer postal code and sync is on, update everything
+                if (isAddressSame && section === 'customer') {
+                    setFormData(prev => ({
+                        ...prev,
+                        property: {
+                            ...prev.property,
+                            address_city: detectedCity,
+                            address_postal_code: value
+                        }
+                    }));
+                }
+            }
+        }
+
+        // Auto-fill postal code by city
+        if (field === 'address_city' && value.length > 2) {
+            const detectedZip = getZipByCity(value);
+            if (detectedZip) {
+                setFormData(prev => ({
+                    ...prev,
+                    [section]: {
+                        ...prev[section],
+                        address_postal_code: detectedZip
+                    }
+                }));
+                // If it's the customer city and sync is on, update everything
+                if (isAddressSame && section === 'customer') {
+                    setFormData(prev => ({
+                        ...prev,
+                        property: {
+                            ...prev.property,
+                            address_city: value,
+                            address_postal_code: detectedZip
+                        }
+                    }));
+                }
+            }
+        }
 
         // Auto-calculate net area and contractor fee
         if (section === 'details' && ['gross_area', 'chimney_area', 'attic_door_area', 'other_deducted_area'].includes(field)) {
@@ -91,6 +164,24 @@ const NewProject = () => {
                     net_amount: String(Math.round(contractorFee)),
                     energy_saving_gj: energySaving,
                     hem_value: String(Math.round(contractorFee))
+                }
+            }));
+        }
+    };
+
+    const handleAddressSameChange = (e) => {
+        const checked = e.target.checked;
+        setIsAddressSame(checked);
+
+        if (checked) {
+            setFormData(prev => ({
+                ...prev,
+                property: {
+                    ...prev.property,
+                    address_postal_code: prev.customer.address_postal_code,
+                    address_city: prev.customer.address_city,
+                    address_street: prev.customer.address_street,
+                    address_house_number: prev.customer.address_house_number
                 }
             }));
         }
@@ -480,6 +571,19 @@ const NewProject = () => {
                             )}
                         </div>
 
+                        <div className="form-group" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <input
+                                type="checkbox"
+                                id="isAddressSame"
+                                checked={isAddressSame}
+                                onChange={handleAddressSameChange}
+                                style={{ width: '1.25rem', height: '1.25rem', cursor: 'pointer' }}
+                            />
+                            <label htmlFor="isAddressSame" style={{ cursor: 'pointer', fontWeight: 500, color: 'var(--text-primary)' }}>
+                                A beruházás címe megegyezik a lakcímmel
+                            </label>
+                        </div>
+
                         <h3>Ingatlan címe</h3>
                         <div className="form-row">
                             <div className="form-group">
@@ -489,6 +593,8 @@ const NewProject = () => {
                                     value={formData.property.address_postal_code}
                                     onChange={(e) => handleInputChange('property', 'address_postal_code', e.target.value)}
                                     maxLength="4"
+                                    disabled={isAddressSame}
+                                    className={isAddressSame ? 'disabled-input' : ''}
                                 />
                             </div>
 
@@ -498,6 +604,8 @@ const NewProject = () => {
                                     type="text"
                                     value={formData.property.address_city}
                                     onChange={(e) => handleInputChange('property', 'address_city', e.target.value)}
+                                    disabled={isAddressSame}
+                                    className={isAddressSame ? 'disabled-input' : ''}
                                 />
                             </div>
                         </div>
@@ -509,6 +617,8 @@ const NewProject = () => {
                                     type="text"
                                     value={formData.property.address_street}
                                     onChange={(e) => handleInputChange('property', 'address_street', e.target.value)}
+                                    disabled={isAddressSame}
+                                    className={isAddressSame ? 'disabled-input' : ''}
                                 />
                             </div>
 
@@ -518,6 +628,8 @@ const NewProject = () => {
                                     type="text"
                                     value={formData.property.address_house_number}
                                     onChange={(e) => handleInputChange('property', 'address_house_number', e.target.value)}
+                                    disabled={isAddressSame}
+                                    className={isAddressSame ? 'disabled-input' : ''}
                                 />
                             </div>
                         </div>

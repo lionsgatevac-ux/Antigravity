@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { statsAPI, projectsAPI } from '../services/api';
 import { formatCurrency, formatDate } from '../utils/calculations';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../contexts/AuthContext';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -10,6 +12,7 @@ const AdminDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [selectedIds, setSelectedIds] = useState([]);
     const { showToast } = useApp();
+    const { logout } = useAuth(); // Import logout
 
     const PROFIT_RATE = 16000;
 
@@ -38,7 +41,8 @@ const AdminDashboard = () => {
             setMonthlyStats(monthlyRes.data || []);
         } catch (error) {
             console.error('Error loading admin data:', error);
-            showToast('Hiba az adatok betöltésekor', 'error');
+            const errMsg = error.response?.data?.error || error.message || 'Ismeretlen hiba';
+            showToast(`Hiba az adatok betöltésekor: ${errMsg}`, 'error');
         } finally {
             setLoading(false);
         }
@@ -157,6 +161,17 @@ const AdminDashboard = () => {
             <div className="page-header">
                 <h1>Adminisztrátori Vezérlőpult</h1>
                 <div className="header-actions">
+                    <Link to="/invite" className="btn btn-primary" style={{ marginRight: '1rem' }}>
+                        ✉️ Új Felhasználó
+                    </Link>
+                    <button
+                        onClick={logout}
+                        className="btn"
+                        style={{ backgroundColor: '#ef4444', color: 'white', marginRight: 'auto' }}
+                    >
+                        ⚠️ Kilépés
+                    </button>
+
                     <select
                         value={filterType}
                         onChange={(e) => setFilterType(e.target.value)}

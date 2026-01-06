@@ -17,29 +17,32 @@ const getConnectionString = () => {
     return url;
 };
 
-// Use a config object to handle special password characters (space) better than URL string
 const getConfig = () => {
-    const url = getConnectionString();
+    // Detect production: NODE_ENV or Google Cloud Run service name
+    const isProduction = process.env.NODE_ENV === 'production' || process.env.K_SERVICE !== undefined;
+    const prodUrl = 'postgresql://postgres:Bizniszmatek@db.pkjohziwbiiyzyospuot.supabase.co:5432/postgres';
 
-    // Explicitly check for development environment or missing URL
-    // If no URL or localhost, try to prioritize local config with known password
-    if (!url || (process.env.NODE_ENV !== 'production' && url.includes('localhost'))) {
-        console.log('🔧 Config: Using local development configuration with explicit password.');
+    if (isProduction) {
+        console.log('🌐 Config: Using Hardcoded Production Supabase configuration.');
         return {
-            user: 'postgres',
-            host: 'localhost',
-            database: 'bozso_db',
-            password: 'Biznisz matek',
-            port: 5432,
-            max: 20, // Pool size
+            connectionString: prodUrl,
+            ssl: { rejectUnauthorized: false },
+            max: 20,
             idleTimeoutMillis: 30000,
-            connectionTimeoutMillis: 2000,
+            connectionTimeoutMillis: 10000,
         };
     }
 
+    console.log('🔧 Config: Using local development configuration.');
     return {
-        connectionString: url,
-        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+        user: 'postgres',
+        host: 'localhost',
+        database: 'bozso_db',
+        password: 'Biznisz matek',
+        port: 5432,
+        max: 20,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 2000,
     };
 };
 
@@ -47,6 +50,7 @@ const pool = new Pool(getConfig());
 
 // Test connection
 pool.on('connect', () => {
+    console.log('✅ Database connected successfully!');
     // Less verbose, only log once
     if (!global.dbConnected) {
         console.log('✅ Database connected successfully');

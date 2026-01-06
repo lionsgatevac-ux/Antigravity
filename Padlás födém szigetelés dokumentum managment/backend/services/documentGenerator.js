@@ -72,21 +72,40 @@ class DocumentGenerator {
         };
 
         console.log('--- START DOCUMENT GENERATION ---');
-        console.log(`Template: ${templateName}`);
+        console.log(`Requested Template: ${templateName}`);
+        console.log(`User Role: ${data.owner_role}`);
 
         try {
+            // Template selection based on role
+            let targetTemplate = templateName;
+            if (data.owner_role === 'external') {
+                targetTemplate = `${templateName}_ext`;
+                console.log(`External user detected. Using template: ${targetTemplate}`);
+            }
+
             // Template path
-            const templatePath = path.join(this.templatesDir, `${templateName}.docx`);
+            const templatePath = path.join(this.templatesDir, `${targetTemplate}.docx`);
 
             if (!fs.existsSync(templatePath)) {
-                throw new Error(`Template not found: ${templateName}`);
+                // Fallback to default if external template missing? Or error?
+                // User said "csinálj az új regisztrálónak új sablonokat".
+                // I will try to fallback to default if _ext missing, but log warning.
+                if (data.owner_role === 'external' && fs.existsSync(path.join(this.templatesDir, `${templateName}.docx`))) {
+                    console.warn(`External template ${targetTemplate} not found. Falling back to ${templateName}`);
+                    targetTemplate = templateName;
+                } else {
+                    throw new Error(`Template not found: ${targetTemplate} (and no fallback)`);
+                }
             }
-            console.log(`[DEBUG] Loading template from: ${templatePath}`);
-            const stats = fs.statSync(templatePath);
+            // Re-resolve path after fallback logic
+            const finalTemplatePath = path.join(this.templatesDir, `${targetTemplate}.docx`);
+
+            console.log(`[DEBUG] Loading template from: ${finalTemplatePath}`);
+            const stats = fs.statSync(finalTemplatePath);
             console.log(`[DEBUG] Template file size: ${stats.size} bytes`);
 
             // Load template
-            const content = fs.readFileSync(templatePath, 'binary');
+            const content = fs.readFileSync(finalTemplatePath, 'binary');
             const zip = new PizZip(content);
 
             // Create docxtemplater instance
@@ -96,8 +115,8 @@ class DocumentGenerator {
                 const ImageModule = require('docxtemplater-image-module-free');
                 const sizeOf = require('image-size');
 
-                // Define base64 regex - relaxed to allow spaces
-                const base64Regex = /data:image\/[a-zA-Z0-9+]+;base64,\s*/;
+                // Define base64 regex - robust matching
+                const base64Regex = /^data:image\/(?:png|jpg|jpeg|svg\+xml);base64,/;
 
                 const opts = {};
                 opts.centered = false;
@@ -125,8 +144,8 @@ class DocumentGenerator {
                             // SCALE LOGIC
                             let maxWidth = 200; // Default for signatures
                             if (tagName === 'alaprajz') {
-                                maxWidth = 714; // Reduced by another 15% from 840 for perfect fit
-                                console.log('[ImageModule] tagName is alaprajz, using maxWidth 714');
+                                maxWidth = 600; // Increased by another 15%
+                                console.log('[ImageModule] tagName is alaprajz, using maxWidth 600');
                             }
 
                             if (dimensions.width > maxWidth) {
@@ -190,7 +209,7 @@ class DocumentGenerator {
             });
 
             // Save file
-            const fileName = `${templateName}_${data.contract_number || Date.now()}.docx`;
+            const fileName = `${targetTemplate}_${data.contract_number || Date.now()}.docx`;
             const filePath = path.join(this.generatedDir, fileName);
             fs.writeFileSync(filePath, buf);
 
@@ -321,6 +340,34 @@ class DocumentGenerator {
             energySaving = parseFloat((parseFloat(data.net_area) * 0.461).toFixed(2));
         }
 
+        // DETERMINE CONTRACTOR DATA
+        let contractor = CONTRACTOR_DATA;
+        if (data.owner_role === 'external') {
+            contractor = {
+                companyName: data.owner_company_name,
+                address: data.owner_company_address, // Assumes full string stored
+                registrationNumber: data.owner_company_reg_number,
+                taxNumber: data.owner_company_tax_number,
+                statisticsNumber: "", // Not stored?
+                mkikNumber: "", // Not stored?
+                insurancePolicy: "", // Not stored?
+                representative: {
+                    name: data.owner_name,
+                    birthPlace: "", // Not stored
+                    birthDate: "", // Not stored
+                    motherName: "", // Not stored
+                    address: "" // Not stored
+                },
+                bank: {
+                    name: "", // Not stored yet
+                    accountNumber: "" // Not stored yet
+                },
+                contact: {
+                    email: data.owner_email // available via JOIN? Need to ensure it is selected
+                }
+            };
+        }
+
         const result = {
             // --- HUNGARIAN MAPPING FOR TEMPLATE ---
             // Customer
@@ -418,15 +465,20 @@ class DocumentGenerator {
             // Logic
             padlasfeljaro_szigetelve: data.attic_door_insulated ? 'IGEN' : 'NEM',
 
-            // CONTRACTOR DATA
-            vallalkozo_nev: CONTRACTOR_DATA.companyName,
-            vallalkozo_cim: CONTRACTOR_DATA.address,
-            vallalkozo_adoszam: CONTRACTOR_DATA.taxNumber,
-            vallalkozo_bankszamla: CONTRACTOR_DATA.bank.accountNumber,
-            vallalkozo_kepviselo: CONTRACTOR_DATA.representative.name,
+            // CONTRACTOR DATA (Dynamic)
+            vallalkozo_nev: contractor.companyName,
+            vallalkozo_cim: contractor.address,
+            vallalkozo_adoszam: contractor.taxNumber,
+            vallalkozo_bankszamla: contractor.bank.accountNumber || '',
+            vallalkozo_kepviselo: contractor.representative.name || '',
+
+            // For new dynamic templates, we expose explicit keys for company info
+            company_name: contractor.companyName,
+            company_address: contractor.address,
+            company_tax_number: contractor.taxNumber,
 
             // Keep English keys for backward compatibility
-            contractor_name: CONTRACTOR_DATA.companyName,
+            contractor_name: contractor.companyName,
             contract_number: data.contract_number || '',
             szerzodesszama: data.contract_number || '',
             ev: new Date().getFullYear(),

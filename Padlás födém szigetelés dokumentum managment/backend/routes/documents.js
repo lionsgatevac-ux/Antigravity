@@ -37,23 +37,40 @@ router.post('/generate', async (req, res, next) => {
         if (floorPlanResult.rows.length > 0) {
             try {
                 const fs = require('fs');
-                const fpPath = floorPlanResult.rows[0].file_path;
+                const path = require('path');
+                let fpPath = floorPlanResult.rows[0].file_path;
                 console.log(`[DEBUG] Found floor plan record. ID: ${projectId}, Path: ${fpPath}`);
+
+                let fileBuffer = null;
+
+                // 1. Try exact path from DB
                 if (fs.existsSync(fpPath)) {
-                    console.log(`[DEBUG] Floor plan file exists on disk.`);
-                    const bitmap = fs.readFileSync(fpPath);
-                    floorPlanBase64 = 'data:image/png;base64,' + bitmap.toString('base64');
-                    console.log('✅ Floor plan loaded for document.');
-                } else {
-                    console.error(`[ERROR] Floor plan file NOT found at path: ${fpPath}`);
-                    // Try absolute path if relative fails
-                    const absolutePath = require('path').resolve(process.cwd(), fpPath);
-                    console.log(`[DEBUG] Trying absolute path: ${absolutePath}`);
-                    if (fs.existsSync(absolutePath)) {
-                        console.log(`[DEBUG] Absolute path exists!`);
-                        const bitmap = fs.readFileSync(absolutePath);
-                        floorPlanBase64 = 'data:image/png;base64,' + bitmap.toString('base64');
+                    console.log(`[DEBUG] Document generation: Floor plan found at exact path: ${fpPath}`);
+                    fileBuffer = fs.readFileSync(fpPath);
+                }
+                // 2. Try absolute path resolution
+                else {
+                    const absPath = path.resolve(process.cwd(), fpPath);
+                    if (fs.existsSync(absPath)) {
+                        console.log(`[DEBUG] Document generation: Floor plan found at resolved absolute path: ${absPath}`);
+                        fileBuffer = fs.readFileSync(absPath);
                     }
+                    // 3. Try finding it in the uploads folder by filename only
+                    else {
+                        const filename = path.basename(fpPath);
+                        const fallbackPath = path.join(__dirname, '..', 'uploads', 'floor_plan', filename);
+                        if (fs.existsSync(fallbackPath)) {
+                            console.log(`[DEBUG] Document generation: Floor plan found at fallback path: ${fallbackPath}`);
+                            fileBuffer = fs.readFileSync(fallbackPath);
+                        } else {
+                            console.error(`[ERROR] Floor plan NOT found. Tried: ${fpPath}, ${absPath}, ${fallbackPath}`);
+                        }
+                    }
+                }
+
+                if (fileBuffer) {
+                    floorPlanBase64 = 'data:image/png;base64,' + fileBuffer.toString('base64');
+                    console.log('✅ Floor plan loaded successfully for document.');
                 }
             } catch (err) {
                 console.error('Failed to load floor plan image:', err);

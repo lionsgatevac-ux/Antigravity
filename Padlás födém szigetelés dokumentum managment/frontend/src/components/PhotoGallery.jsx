@@ -90,10 +90,10 @@ const PhotoGallery = ({ projectId, refreshTrigger }) => {
                     }}>
                         <div className="photo-wrapper" style={{ aspectRatio: '4/3', overflow: 'hidden' }}>
                             <img
-                                src={`http://localhost:3000${photo.file_url}`}
+                                src={`${import.meta.env.PROD ? '' : 'http://localhost:3000'}${photo.file_url}`}
                                 alt={photo.photo_type}
                                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                onClick={() => window.open(`http://localhost:3000${photo.file_url}`, '_blank')}
+                                onClick={() => window.open(`${import.meta.env.PROD ? '' : 'http://localhost:3000'}${photo.file_url}`, '_blank')}
                             />
                         </div>
                         <div className="photo-info" style={{ padding: '8px', fontSize: '0.8rem' }}>
@@ -109,7 +109,7 @@ const PhotoGallery = ({ projectId, refreshTrigger }) => {
                             gap: '5px'
                         }}>
                             <button
-                                onClick={() => window.open(`http://localhost:3000${photo.file_url}`, '_blank')}
+                                onClick={() => window.open(`${import.meta.env.PROD ? '' : 'http://localhost:3000'}${photo.file_url}`, '_blank')}
                                 style={{ background: 'rgba(0,0,0,0.5)', color: 'white', border: 'none', borderRadius: '4px', padding: '4px' }}
                                 title="Megnyitás"
                             >

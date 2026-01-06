@@ -4,12 +4,16 @@ const Project = require('../models/Project');
 const Customer = require('../models/Customer');
 const ProjectDetails = require('../models/ProjectDetails');
 const { transaction } = require('../config/database');
+const authMiddleware = require('../middleware/authMiddleware');
+
+// Protect all project routes
+router.use(authMiddleware);
 
 // GET all projects
 router.get('/', async (req, res, next) => {
     try {
         const { status } = req.query;
-        const projects = await Project.findAll({ status });
+        const projects = await Project.findAll({ status }, req.user); // Pass user for filtering
         res.json({ success: true, data: projects });
     } catch (error) {
         next(error);
@@ -19,7 +23,7 @@ router.get('/', async (req, res, next) => {
 // GET project by ID
 router.get('/:id', async (req, res, next) => {
     try {
-        const project = await Project.findById(req.params.id);
+        const project = await Project.findById(req.params.id, req.user);
         if (!project) {
             return res.status(404).json({ success: false, error: 'Project not found' });
         }
@@ -82,8 +86,8 @@ router.post('/', async (req, res, next) => {
 
             // Create project
             const projectResult = await client.query(
-                'INSERT INTO projects (contract_number, status) VALUES ($1, $2) RETURNING *',
-                [contract_number, 'draft']
+                'INSERT INTO projects (contract_number, status, organization_id, created_by) VALUES ($1, $2, $3, $4) RETURNING *',
+                [contract_number, 'draft', req.user.organization_id, req.user.id] // Use organization_id and created_by
             );
             const project = projectResult.rows[0];
 

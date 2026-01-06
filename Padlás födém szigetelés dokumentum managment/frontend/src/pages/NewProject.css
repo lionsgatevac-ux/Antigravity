@@ -114,6 +114,7 @@ select.error {
         grid-template-columns: 1fr;
     }
 }
+
 /* Material selection groups */
 .material-selection-row {
     margin-bottom: var(--spacing-md);
@@ -152,4 +153,16 @@ select.error {
 
 .btn-icon-plus:active {
     transform: scale(0.95);
+}
+
+.disabled-input {
+    background-color: var(--bg-tertiary) !important;
+    cursor: not-allowed;
+    opacity: 0.8;
+    border-color: var(--border) !important;
+}
+
+.disabled-input:focus {
+    box-shadow: none !important;
+    border-color: var(--border) !important;
 }

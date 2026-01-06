@@ -45,12 +45,16 @@ app.use('/generated', express.static(path.join(__dirname, 'generated'), {
     }
 }));
 
+// Serve frontend static files
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
+
 // API Routes
-app.use('/api/projects', projectRoutes);
-app.use('/api/customers', customerRoutes);
-app.use('/api/documents', documentRoutes);
-app.use('/api/uploads', uploadRoutes);
-app.use('/api/stats', statsRoutes);
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/projects', require('./routes/projects')); // Protection inside routes or here?
+app.use('/api/customers', require('./routes/customers'));
+app.use('/api/documents', require('./routes/documents'));
+app.use('/api/uploads', require('./routes/uploads'));
+app.use('/api/stats', require('./routes/stats'));
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -61,23 +65,28 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-// Root route for convenience
-app.get('/', (req, res) => {
-    res.send(`
-        <h1>Backend API Running</h1>
-        <p>You are accessing the backend API server.</p>
-        <p>Please visit the frontend application at: <a href="http://localhost:5173">http://localhost:5173</a></p>
-    `);
+// All other routes serve index.html (for SPA)
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
 });
 
 // Error handling middleware (must be last)
 app.use(errorHandler);
 
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
     console.log(`🚀 Backend server running on http://localhost:${PORT}`);
     console.log(`📝 Environment: ${process.env.NODE_ENV}`);
     console.log(`🗄️  Database: ${process.env.DATABASE_URL ? 'Connected' : 'Not configured'}`);
+
+    // Verify database connection on startup
+    try {
+        const db = require('./config/database');
+        const result = await db.query('SELECT NOW()');
+        console.log('✅ Database connected successfully at:', result.rows[0].now);
+    } catch (err) {
+        console.error('❌ Database connection FAILED:', err.message);
+    }
 });
 
 module.exports = app;

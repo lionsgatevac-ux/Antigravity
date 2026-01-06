@@ -6,7 +6,7 @@
   --secondary: #7c3aed;
   --secondary-dark: #6d28d9;
   --accent: #06b6d4;
-  
+
   /* Neutrals */
   --bg-primary: #ffffff;
   --bg-secondary: #f8fafc;
@@ -15,7 +15,7 @@
   --text-secondary: #475569;
   --text-tertiary: #94a3b8;
   --border: #e2e8f0;
-  
+
   /* Dark mode */
   --dark-bg-primary: #0f172a;
   --dark-bg-secondary: #1e293b;
@@ -23,13 +23,13 @@
   --dark-text-primary: #f1f5f9;
   --dark-text-secondary: #cbd5e1;
   --dark-border: #334155;
-  
+
   /* Status colors */
   --success: #10b981;
   --warning: #f59e0b;
   --error: #ef4444;
   --info: #3b82f6;
-  
+
   /* Spacing */
   --spacing-xs: 0.25rem;
   --spacing-sm: 0.5rem;
@@ -37,24 +37,24 @@
   --spacing-lg: 1.5rem;
   --spacing-xl: 2rem;
   --spacing-2xl: 3rem;
-  
+
   /* Border radius */
   --radius-sm: 0.375rem;
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
   --radius-xl: 1rem;
-  
+
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-  
+
   /* Glassmorphism */
   --glass-bg: rgba(255, 255, 255, 0.7);
   --glass-border: rgba(255, 255, 255, 0.3);
   --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
-  
+
   /* Transitions */
   --transition-fast: 150ms ease-in-out;
   --transition-base: 250ms ease-in-out;
@@ -98,18 +98,40 @@ body::before {
 }
 
 /* Typography */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-weight: 700;
   line-height: 1.2;
   color: var(--text-primary);
 }
 
-h1 { font-size: 2.5rem; }
-h2 { font-size: 2rem; }
-h3 { font-size: 1.75rem; }
-h4 { font-size: 1.5rem; }
-h5 { font-size: 1.25rem; }
-h6 { font-size: 1rem; }
+h1 {
+  font-size: 2.5rem;
+}
+
+h2 {
+  font-size: 2rem;
+}
+
+h3 {
+  font-size: 1.75rem;
+}
+
+h4 {
+  font-size: 1.5rem;
+}
+
+h5 {
+  font-size: 1.25rem;
+}
+
+h6 {
+  font-size: 1rem;
+}
 
 p {
   margin-bottom: var(--spacing-md);
@@ -185,7 +207,9 @@ button {
 }
 
 /* Inputs */
-input, textarea, select {
+input,
+textarea,
+select {
   width: 100%;
   padding: var(--spacing-sm) var(--spacing-md);
   border: 2px solid var(--border);
@@ -196,7 +220,9 @@ input, textarea, select {
   background: var(--bg-primary);
 }
 
-input:focus, textarea:focus, select:focus {
+input:focus,
+textarea:focus,
+select:focus {
   outline: none;
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
@@ -238,19 +264,49 @@ input:focus, textarea:focus, select:focus {
   justify-content: space-between;
 }
 
-.gap-sm { gap: var(--spacing-sm); }
-.gap-md { gap: var(--spacing-md); }
-.gap-lg { gap: var(--spacing-lg); }
+.gap-sm {
+  gap: var(--spacing-sm);
+}
 
-.mt-sm { margin-top: var(--spacing-sm); }
-.mt-md { margin-top: var(--spacing-md); }
-.mt-lg { margin-top: var(--spacing-lg); }
-.mt-xl { margin-top: var(--spacing-xl); }
+.gap-md {
+  gap: var(--spacing-md);
+}
 
-.mb-sm { margin-bottom: var(--spacing-sm); }
-.mb-md { margin-bottom: var(--spacing-md); }
-.mb-lg { margin-bottom: var(--spacing-lg); }
-.mb-xl { margin-bottom: var(--spacing-xl); }
+.gap-lg {
+  gap: var(--spacing-lg);
+}
+
+.mt-sm {
+  margin-top: var(--spacing-sm);
+}
+
+.mt-md {
+  margin-top: var(--spacing-md);
+}
+
+.mt-lg {
+  margin-top: var(--spacing-lg);
+}
+
+.mt-xl {
+  margin-top: var(--spacing-xl);
+}
+
+.mb-sm {
+  margin-bottom: var(--spacing-sm);
+}
+
+.mb-md {
+  margin-bottom: var(--spacing-md);
+}
+
+.mb-lg {
+  margin-bottom: var(--spacing-lg);
+}
+
+.mb-xl {
+  margin-bottom: var(--spacing-xl);
+}
 
 /* Loading spinner */
 .spinner {
@@ -263,7 +319,9 @@ input:focus, textarea:focus, select:focus {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Toast notifications */
@@ -285,6 +343,7 @@ input:focus, textarea:focus, select:focus {
     transform: translateX(100%);
     opacity: 0;
   }
+
   to {
     transform: translateX(0);
     opacity: 1;
@@ -296,7 +355,7 @@ input:focus, textarea:focus, select:focus {
   html {
     font-size: 14px;
   }
-  
+
   .container {
     padding: 0 var(--spacing-md);
   }
@@ -308,15 +367,26 @@ input:focus, textarea:focus, select:focus {
     background: var(--dark-bg-primary);
     color: var(--dark-text-primary);
   }
-  
+
   .card {
     background: rgba(30, 41, 59, 0.7);
     border-color: var(--dark-border);
   }
-  
-  input, textarea, select {
+
+  input,
+  textarea,
+  select {
     background: var(--dark-bg-secondary);
     border-color: var(--dark-border);
+    color: var(--dark-text-primary);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     color: var(--dark-text-primary);
   }
 }

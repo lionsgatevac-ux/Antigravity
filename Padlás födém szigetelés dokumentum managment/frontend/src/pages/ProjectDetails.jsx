@@ -7,7 +7,7 @@ import { formatDate } from '../utils/calculations';
 import SignatureModal from '../components/SignatureModal';
 
 
-import FloorPlanCanvas from '../components/FloorPlanCanvas';
+import FloorPlanModal from '../components/FloorPlanModal';
 import BulkPhotoUploader from '../components/BulkPhotoUploader';
 import PhotoGallery from '../components/PhotoGallery';
 
@@ -23,6 +23,7 @@ const ProjectDetails = () => {
     const [customerSignature, setCustomerSignature] = useState(null);
     const [contractorSignature, setContractorSignature] = useState(null);
     const [refreshPhotos, setRefreshPhotos] = useState(0);
+    const [showFloorPlanModal, setShowFloorPlanModal] = useState(false);
 
     useEffect(() => {
         loadProject();
@@ -60,7 +61,7 @@ const ProjectDetails = () => {
             // Construct download URL
             if (response.data && response.data.fileUrl) {
                 // FORCE BACKEND URL with cache-busting timestamp
-                const backendBaseUrl = 'http://localhost:3000';
+                const backendBaseUrl = import.meta.env.PROD ? '' : 'http://localhost:3000';
                 const timestamp = new Date().getTime(); // Cache buster
                 const staticUrl = `${backendBaseUrl}${response.data.fileUrl}?t=${timestamp}`;
                 console.log('Opening static URL:', staticUrl);
@@ -205,22 +206,20 @@ const ProjectDetails = () => {
                     <div style={{ marginBottom: '20px', border: '1px solid #eee', borderRadius: '8px', padding: '10px', backgroundColor: '#fdfdfd' }}>
                         <p style={{ fontSize: '0.9em', color: '#666', marginBottom: '10px' }}>Mentett alaprajz:</p>
                         <img
-                            src={`http://localhost:3000${project.floor_plan_url}`}
+                            src={`${import.meta.env.PROD ? '' : 'http://localhost:3000'}${project.floor_plan_url}`}
                             alt="Alaprajz"
                             style={{ maxWidth: '100%', borderRadius: '4px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}
                         />
                     </div>
                 )}
 
-                {/* Use the new Floor Planner component */}
-                <FloorPlanCanvas
-                    projectId={id}
-                    onSaveSuccess={() => {
-                        console.log("Floor plan saved");
-                        loadProject(); // Reload to show the new preview
-                        showToast('Alaprajz frissítve!', 'success');
-                    }}
-                />
+                <button
+                    onClick={() => setShowFloorPlanModal(true)}
+                    className="btn btn-primary w-full flex items-center justify-center gap-2"
+                >
+                    <PenTool size={18} />
+                    {project.floor_plan_url ? 'Alaprajz Szerkesztése (V2)' : 'Új Alaprajz Készítése (V2)'}
+                </button>
             </div>
 
             <div className="card">
@@ -315,6 +314,16 @@ const ProjectDetails = () => {
                 onClose={() => setShowContractorModal(false)}
                 onSave={(data) => handleSaveSignature('contractor', data)}
                 title="Kivitelező aláírása"
+            />
+
+            <FloorPlanModal
+                projectId={id}
+                isOpen={showFloorPlanModal}
+                onClose={() => setShowFloorPlanModal(false)}
+                onSaveSuccess={() => {
+                    loadProject();
+                    showToast('Alaprajz sikeresen mentve!', 'success');
+                }}
             />
         </div>
     );

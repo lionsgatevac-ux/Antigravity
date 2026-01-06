@@ -20,7 +20,7 @@ router.get('/monthly', async (req, res, next) => {
       ORDER BY month DESC
     `);
 
-        res.json({ success: true, data: result.rows });
+        res.json(result.rows);
     } catch (error) {
         next(error);
     }
@@ -48,18 +48,15 @@ router.get('/overview', async (req, res, next) => {
         const totalProfit = totalGJ * profitRate;
 
         res.json({
-            success: true,
-            data: {
-                totalProjects: parseInt(totalProjects.rows[0].count),
-                activeProjects: parseInt(activeProjects.rows[0].count),
-                completedProjects: parseInt(completedProjects.rows[0].count),
-                auditedProjects: parseInt(auditedProjects.rows[0].count),
-                soldProjects: parseInt(soldProjects.rows[0].count),
-                totalArea: parseFloat(stats.rows[0].total_area) || 0,
-                totalRevenue: parseFloat(stats.rows[0].total_revenue) || 0,
-                totalGJ: totalGJ,
-                totalProfit: totalProfit
-            }
+            totalProjects: parseInt(totalProjects.rows[0].count),
+            activeProjects: parseInt(activeProjects.rows[0].count),
+            completedProjects: parseInt(completedProjects.rows[0].count),
+            auditedProjects: parseInt(auditedProjects.rows[0].count),
+            soldProjects: parseInt(soldProjects.rows[0].count),
+            totalArea: parseFloat(stats.rows[0].total_area) || 0,
+            totalRevenue: parseFloat(stats.rows[0].total_revenue) || 0,
+            totalGJ: totalGJ,
+            totalProfit: totalProfit
         });
     } catch (error) {
         next(error);
