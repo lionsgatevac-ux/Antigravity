@@ -262,8 +262,19 @@ const NewProject = () => {
         try {
             setLoading(true);
             const response = await projectsAPI.create(formData);
+            console.log('Project creation response:', response); // DEBUG
             showToast('Projekt sikeresen létrehozva!', 'success');
-            navigate(`/projects/${response.data.project.id}`);
+
+            // Check if response structure is as expected
+            const projectId = response?.data?.project?.id;
+            console.log('Target Project ID:', projectId); // DEBUG
+
+            if (projectId) {
+                navigate(`/projects/${projectId}`);
+            } else {
+                console.error('Project ID missing in response:', response);
+                showToast('Hiba: Nem sikerült a projekt azonosítóját lekérni', 'error');
+            }
         } catch (error) {
             showToast('Hiba a projekt létrehozásakor', 'error');
             console.error(error);

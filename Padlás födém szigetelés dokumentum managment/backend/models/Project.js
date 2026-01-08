@@ -96,7 +96,7 @@ class Project {
         INNER JOIN project_details pd ON p.id = pd.project_id
         LEFT JOIN customers c ON pd.customer_id = c.id
         LEFT JOIN properties pr ON pd.property_id = pr.id
-        LEFT JOIN users u ON p.user_id = u.id
+        LEFT JOIN users u ON p.created_by = u.id
         WHERE p.id = $1`,
             [id]
         );

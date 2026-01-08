@@ -13,7 +13,7 @@ export const AuthProvider = ({ children }) => {
     const [error, setError] = useState(null);
 
     // Set base URL (global axios) - keep for auth calls
-    axios.defaults.baseURL = 'http://localhost:3000';
+    axios.defaults.baseURL = import.meta.env.PROD ? '' : 'http://localhost:3000';
 
     // Configure headers & interceptors
     useEffect(() => {

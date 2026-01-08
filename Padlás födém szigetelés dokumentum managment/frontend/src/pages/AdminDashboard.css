@@ -217,3 +217,94 @@
         gap: var(--spacing-md);
     }
 }
+
+/* Dark mode support extension */
+@media (prefers-color-scheme: dark) {
+    .admin-table-container {
+        background: var(--dark-bg-secondary);
+        border-color: var(--dark-border);
+    }
+
+    .admin-table th {
+        background: var(--dark-bg-tertiary);
+        color: var(--dark-text-secondary);
+        border-bottom-color: var(--dark-border);
+    }
+
+    .admin-table td {
+        border-bottom-color: var(--dark-border);
+        color: var(--dark-text-primary);
+    }
+
+    .admin-table tr:hover {
+        background: var(--dark-bg-tertiary);
+    }
+
+    .admin-table tr.selected {
+        background: rgba(59, 130, 246, 0.15);
+    }
+
+    .month-selector,
+    .filter-type-selector,
+    .date-input,
+    .search-input {
+        background: var(--dark-bg-secondary);
+        color: var(--dark-text-primary);
+        border-color: var(--dark-border);
+    }
+
+    .clear-search {
+        color: var(--dark-text-secondary);
+    }
+
+    .clear-search:hover {
+        color: var(--dark-text-primary);
+    }
+
+    .bulk-actions {
+        background: var(--dark-bg-secondary);
+        border-color: var(--dark-border);
+    }
+
+    .bulk-label {
+        color: var(--dark-text-secondary);
+    }
+}
+/* High specificity dark mode override */
+@media (prefers-color-scheme: dark) {
+    .admin-dashboard .admin-table-container {
+        background-color: var(--dark-bg-secondary) !important;
+        border-color: var(--dark-border) !important;
+    }
+    .admin-dashboard .admin-table th {
+        background-color: var(--dark-bg-tertiary) !important;
+        color: var(--dark-text-secondary) !important;
+        border-bottom-color: var(--dark-border) !important;
+    }
+    .admin-dashboard .admin-table td {
+        border-bottom-color: var(--dark-border) !important;
+        color: var(--dark-text-primary) !important;
+    }
+    .admin-dashboard .admin-table tr:hover {
+        background-color: var(--dark-bg-tertiary) !important;
+    }
+    .admin-dashboard .admin-table tr.selected {
+        background-color: rgba(59, 130, 246, 0.15) !important;
+    }
+    .admin-dashboard .month-selector,
+    .admin-dashboard .filter-type-selector,
+    .admin-dashboard .date-input,
+    .admin-dashboard .search-input,
+    .admin-dashboard .bulk-actions {
+        background-color: var(--dark-bg-secondary) !important;
+        color: var(--dark-text-primary) !important;
+        border-color: var(--dark-border) !important;
+    }
+    .admin-dashboard .bulk-label,
+    .admin-dashboard .clear-search {
+        color: var(--dark-text-secondary) !important;
+    }
+    .admin-dashboard .clear-search:hover {
+        color: var(--dark-text-primary) !important;
+    }
+}

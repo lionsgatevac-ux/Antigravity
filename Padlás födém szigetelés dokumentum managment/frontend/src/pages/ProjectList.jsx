@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { projectsAPI } from '../services/api';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../contexts/AuthContext'; // Import useAuth
 import { formatDate, formatCurrency } from '../utils/calculations';
 import './ProjectList.css';
 
@@ -10,6 +11,9 @@ const ProjectList = () => {
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('all');
     const { showToast } = useApp();
+    const { user } = useAuth(); // Get user from AuthContext
+    console.log('Current user in ProjectList:', user); // DEBUG LOG
+    const navigate = useNavigate();
 
     useEffect(() => {
         loadProjects();
@@ -26,6 +30,22 @@ const ProjectList = () => {
             console.error(error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleDelete = async (e, id, contractNumber) => {
+        e.preventDefault(); // Biztonság kedvéért
+        e.stopPropagation(); // Fontos: ne hívódjon meg a kártya onClick-je
+
+        if (window.confirm(`Biztosan törölni szeretnéd a(z) ${contractNumber} számú projektet? Ez a művelet nem vonható vissza!`)) {
+            try {
+                await projectsAPI.delete(id);
+                setProjects(projects.filter(p => p.id !== id));
+                showToast('Projekt sikeresen törölve', 'success');
+            } catch (error) {
+                console.error('Törlési hiba:', error);
+                showToast('Hiba a projekt törlésekor', 'error');
+            }
         }
     };
 
@@ -94,15 +114,29 @@ const ProjectList = () => {
             ) : (
                 <div className="projects-grid">
                     {projects.map((project) => (
-                        <Link
+                        <div
                             key={project.id}
-                            to={`/projects/${project.id}`}
+                            onClick={() => navigate(`/projects/${project.id}`)}
                             className="project-card card"
+                            style={{ cursor: 'pointer' }} // Ensure pointer cursor
                         >
                             <div className="project-header">
                                 <h3>{project.contract_number}</h3>
-                                {getStatusBadge(project.status)}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    {getStatusBadge(project.status)}
+                                    {user?.role === 'admin' && (
+                                        <button
+                                            className="delete-btn"
+                                            onClick={(e) => handleDelete(e, project.id, project.contract_number)}
+                                            title="Projekt törlése"
+                                        >
+                                            🗑️
+                                        </button>
+                                    )}
+                                </div>
                             </div>
+
+
 
                             <div className="project-info">
                                 <div className="info-row">
@@ -124,7 +158,7 @@ const ProjectList = () => {
                                     </div>
                                 )}
                             </div>
-                        </Link>
+                        </div>
                     ))}
                 </div>
             )}
