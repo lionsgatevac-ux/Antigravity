@@ -12,7 +12,6 @@ const ProjectList = () => {
     const [filter, setFilter] = useState('all');
     const { showToast } = useApp();
     const { user } = useAuth(); // Get user from AuthContext
-    console.log('Current user in ProjectList:', user); // DEBUG LOG
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -141,14 +140,7 @@ const ProjectList = () => {
                             <div className="project-info">
                                 <div className="info-row">
                                     <span className="label">Ügyfél:</span>
-                                    <span className="value">
-                                        {project.customer_name || 'N/A'}
-                                        {project.customer_name?.includes('(Vázlat)') && (
-                                            <span style={{ color: '#ef4444', marginLeft: '5px', fontSize: '0.8em' }} title="Hiányos adatok">
-                                                ⚠️
-                                            </span>
-                                        )}
-                                    </span>
+                                    <span className="value">{project.customer_name || 'N/A'}</span>
                                 </div>
                                 <div className="info-row">
                                     <span className="label">Terület:</span>
@@ -165,7 +157,7 @@ const ProjectList = () => {
                                     </div>
                                 )}
                             </div>
-                        </div>
+                        </Link>
                     ))}
                 </div>
             )}

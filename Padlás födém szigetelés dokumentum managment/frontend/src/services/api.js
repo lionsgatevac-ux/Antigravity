@@ -82,4 +82,11 @@ export const statsAPI = {
     getOverview: () => api.get('/stats/overview')
 };
 
+// Admin API
+export const adminAPI = {
+    getEmailSettings: () => api.get('/admin/settings/email'),
+    saveEmailSettings: (data) => api.post('/admin/settings/email', data),
+    sendTestEmail: (email) => api.post('/admin/settings/test-email', { test_email: email })
+};
+
 export default api;

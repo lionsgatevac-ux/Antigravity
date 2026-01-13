@@ -164,6 +164,9 @@ const AdminDashboard = () => {
                     <Link to="/invite" className="btn btn-primary" style={{ marginRight: '1rem' }}>
                         ✉️ Új Felhasználó
                     </Link>
+                    <Link to="/admin/email-settings" className="btn btn-secondary" style={{ marginRight: '1rem', backgroundColor: '#64748b', color: 'white' }}>
+                        ⚙️ Email Beállítások
+                    </Link>
                     <button
                         onClick={logout}
                         className="btn"

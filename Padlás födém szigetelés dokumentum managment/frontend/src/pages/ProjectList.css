@@ -174,3 +174,37 @@
     background-color: #fee2e2;
     /* Light red background */
 }
+
+/* Dark mode overrides */
+@media (prefers-color-scheme: dark) {
+    .project-card * {
+        color: white !important;
+    }
+
+    .info-row .label,
+    .info-row .value,
+    .project-header h3 {
+        color: white !important;
+    }
+
+    .project-header {
+        border-bottom-color: var(--dark-border);
+    }
+
+    /* Status badge text color corrections for dark mode */
+    .status-draft {
+        color: #6b7280 !important;
+    }
+
+    .status-progress {
+        color: #1e40af !important;
+    }
+
+    .status-completed {
+        color: #065f46 !important;
+    }
+
+    .status-signed {
+        color: #9f1239 !important;
+    }
+}

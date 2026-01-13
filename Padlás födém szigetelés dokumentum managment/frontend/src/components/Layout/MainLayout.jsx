@@ -26,7 +26,7 @@ const MainLayout = ({ children }) => {
                                     <Link to="/admin" className="nav-link">Admin</Link>
                                 </>
                             )}
-                            <button onClick={logout} className="nav-link text-red-400 hover:text-red-300 ml-4">
+                            <button onClick={logout} className="nav-link" style={{ background: 'none', border: 'none', font: 'inherit', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                                 Kilépés
                             </button>
                         </nav>

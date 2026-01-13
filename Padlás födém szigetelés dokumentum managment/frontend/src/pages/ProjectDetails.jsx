@@ -187,7 +187,7 @@ const ProjectDetails = () => {
 
                 <div className="card">
                     <h2>Pénzügyi Adatok & Határidők</h2>
-                    <p><strong>Vállalási ár (Nettó):</strong> {project.net_amount ? new Intl.NumberFormat('hu-HU').format(project.net_amount) : 0} Ft</p>
+                    <p><strong>Vállalási ár (Bruttó):</strong> {project.net_amount ? new Intl.NumberFormat('hu-HU').format(project.net_amount) : 0} Ft</p>
                     <p><strong>Anyagköltség (Számított):</strong> {project.net_amount && project.labor_cost ? new Intl.NumberFormat('hu-HU').format(project.net_amount - project.labor_cost) : 0} Ft</p>
                     <p><strong>Munkadíj:</strong> {project.labor_cost ? new Intl.NumberFormat('hu-HU').format(project.labor_cost) : 0} Ft</p>
                     <p><strong>Támogatás összege:</strong> {project.government_support ? new Intl.NumberFormat('hu-HU').format(project.government_support) : 0} Ft</p>

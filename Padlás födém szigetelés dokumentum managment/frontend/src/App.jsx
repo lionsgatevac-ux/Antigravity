@@ -13,6 +13,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import InviteUser from './pages/InviteUser';
 import AcceptInvite from './pages/AcceptInvite';
+import EmailSettings from './pages/EmailSettings';
 
 // Layout
 import MainLayout from './components/Layout/MainLayout';
@@ -67,6 +68,13 @@ function App() {
                             <PrivateRoute>
                                 <MainLayout>
                                     <AdminDashboard />
+                                </MainLayout>
+                            </PrivateRoute>
+                        } />
+                        <Route path="/admin/email-settings" element={
+                            <PrivateRoute>
+                                <MainLayout>
+                                    <EmailSettings />
                                 </MainLayout>
                             </PrivateRoute>
                         } />

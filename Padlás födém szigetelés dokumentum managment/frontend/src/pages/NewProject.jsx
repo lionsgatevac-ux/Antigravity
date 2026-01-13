@@ -258,17 +258,39 @@ const NewProject = () => {
             showToast('Kérjük, töltse ki a kötelező mezőket', 'error');
             return;
         }
+        await submitProject(formData);
+    };
 
+    const handleSaveDraft = async () => {
+        // Create a copy of formData with placeholders for missing required fields
+        const draftData = { ...formData };
+
+        // 1. Customer placeholders
+        if (!draftData.customer.full_name) draftData.customer.full_name = 'Névtelen Ügyfél (Vázlat)';
+        if (!draftData.customer.phone) draftData.customer.phone = 'Nincs megadva';
+        // Email is not strictly required by DB/Controller sanitization usually handles nulls, 
+        // but if we have strict frontend validation rules we are bypassing them here.
+
+        // 2. Property placeholders
+        if (!draftData.property.hrsz) draftData.property.hrsz = 'VÁZLAT';
+        // Other property fields are likely nullable or numeric sanitized to null by controller
+
+        // 3. Details placeholders
+        if (!draftData.details.gross_area) draftData.details.gross_area = '0';
+        if (!draftData.details.net_amount) draftData.details.net_amount = '0';
+
+        // Submit with draft flag (though controller defaults to draft, this ensures we proceed)
+        await submitProject(draftData, true);
+    };
+
+    const submitProject = async (data, isDraft = false) => {
         try {
             setLoading(true);
-            const response = await projectsAPI.create(formData);
-            console.log('Project creation response:', response); // DEBUG
-            showToast('Projekt sikeresen létrehozva!', 'success');
+            const response = await projectsAPI.create(data);
+            console.log('Project creation response:', response);
+            showToast(isDraft ? 'Vázlat sikeresen mentve!' : 'Projekt sikeresen létrehozva!', 'success');
 
-            // Check if response structure is as expected
             const projectId = response?.data?.project?.id;
-            console.log('Target Project ID:', projectId); // DEBUG
-
             if (projectId) {
                 navigate(`/projects/${projectId}`);
             } else {
@@ -276,7 +298,7 @@ const NewProject = () => {
                 showToast('Hiba: Nem sikerült a projekt azonosítóját lekérni', 'error');
             }
         } catch (error) {
-            showToast('Hiba a projekt létrehozásakor', 'error');
+            showToast('Hiba a mentés során', 'error');
             console.error(error);
         } finally {
             setLoading(false);
@@ -812,6 +834,16 @@ const NewProject = () => {
                 {renderStep()}
 
                 <div className="form-actions">
+                    <button
+                        type="button"
+                        onClick={handleSaveDraft}
+                        className="btn btn-secondary"
+                        disabled={loading}
+                        style={{ marginRight: 'auto', backgroundColor: '#6b7280', color: 'white', border: 'none' }}
+                    >
+                        {loading ? 'Mentés...' : '💾 Mentés Vázlatként'}
+                    </button>
+
                     {step > 1 && (
                         <button onClick={handlePrevious} className="btn btn-secondary">
                             ← Vissza

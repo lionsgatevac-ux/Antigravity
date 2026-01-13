@@ -1,54 +1,103 @@
 const nodemailer = require('nodemailer');
+const { query } = require('../config/database');
 
-// Create reusable transporter object using the default SMTP transport
-const createTransporter = async () => {
-    // Check if we have production credentials
-    if (process.env.SMTP_HOST && process.env.SMTP_USER) {
-        return nodemailer.createTransport({
-            host: process.env.SMTP_HOST,
-            port: process.env.SMTP_PORT || 587,
-            secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
-            auth: {
-                user: process.env.SMTP_USER,
-                pass: process.env.SMTP_PASS,
-            },
-        });
-    }
+// Current transporter instance
+let transporter = null;
+let currentConfig = null;
 
-    // Fallback to Ethereal for development
-    console.log('📧 EmailService: SMTP credentials missing, creating Ethereal test account...');
+const getSettings = async () => {
     try {
-        const testAccount = await nodemailer.createTestAccount();
-        const transporter = nodemailer.createTransport({
-            host: "smtp.ethereal.email",
-            port: 587,
-            secure: false, // true for 465, false for other ports
-            auth: {
-                user: testAccount.user, // generated ethereal user
-                pass: testAccount.pass, // generated ethereal password
-            },
-        });
+        const result = await query('SELECT key, value FROM system_settings WHERE key IN ($1, $2, $3, $4, $5)',
+            ['smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_secure']);
 
-        console.log('📧 EmailService: Ethereal Account Created:', testAccount.user);
-        return transporter;
-    } catch (err) {
-        console.error('❌ EmailService: Failed to create Ethereal account', err);
-        return null;
+        const settings = {};
+        result.rows.forEach(row => {
+            settings[row.key] = row.value;
+        });
+        return settings;
+    } catch (error) {
+        console.error('❌ Error fetching email settings:', error);
+        return {};
     }
 };
 
-let transporterPromise = createTransporter();
+const getTransporter = async () => {
+    const dbSettings = await getSettings();
+
+    // Check if we have enough DB settings
+    if (dbSettings.smtp_host && dbSettings.smtp_user) {
+        const newConfigConfigStr = JSON.stringify(dbSettings);
+
+        // If config changed or no transporter, create new one
+        if (!transporter || currentConfig !== newConfigConfigStr) {
+            console.log('📧 EmailService: Initializing transporter from Database settings...');
+            transporter = nodemailer.createTransport({
+                host: dbSettings.smtp_host,
+                port: parseInt(dbSettings.smtp_port) || 587,
+                secure: dbSettings.smtp_secure === 'true', // true for 465, false for other ports
+                auth: {
+                    user: dbSettings.smtp_user,
+                    pass: dbSettings.smtp_pass,
+                },
+            });
+            currentConfig = newConfigConfigStr;
+        }
+        return transporter;
+    }
+
+    // Fallback to Env Vars
+    if (process.env.SMTP_HOST && process.env.SMTP_USER) {
+        if (!transporter) {
+            console.log('📧 EmailService: Using Environment Variables for SMTP...');
+            transporter = nodemailer.createTransport({
+                host: process.env.SMTP_HOST,
+                port: process.env.SMTP_PORT || 587,
+                secure: process.env.SMTP_SECURE === 'true',
+                auth: {
+                    user: process.env.SMTP_USER,
+                    pass: process.env.SMTP_PASS,
+                },
+            });
+        }
+        return transporter;
+    }
+
+    // Fallback to Ethereal
+    if (!transporter) {
+        console.log('📧 EmailService: No settings found, creating Ethereal test account...');
+        try {
+            const testAccount = await nodemailer.createTestAccount();
+            transporter = nodemailer.createTransport({
+                host: "smtp.ethereal.email",
+                port: 587,
+                secure: false,
+                auth: {
+                    user: testAccount.user,
+                    pass: testAccount.pass,
+                },
+            });
+            console.log('📧 EmailService: Ethereal Account Created:', testAccount.user);
+        } catch (err) {
+            console.error('❌ EmailService: Failed to create Ethereal account', err);
+            return null;
+        }
+    }
+    return transporter;
+};
 
 const sendEmail = async ({ to, subject, html, text }) => {
     try {
-        const transporter = await transporterPromise;
+        const transport = await getTransporter();
 
-        if (!transporter) {
+        if (!transport) {
             throw new Error('Email transporter not initialized');
         }
 
-        const info = await transporter.sendMail({
-            from: process.env.EMAIL_FROM || '"Padlás Szigetelés" <noreply@padlasszigeteles.hu>',
+        const dbSettings = await getSettings();
+        const fromAddress = dbSettings.email_from || process.env.EMAIL_FROM || '"Padlás Szigetelés" <noreply@padlasszigeteles.hu>';
+
+        const info = await transport.sendMail({
+            from: fromAddress,
             to,
             subject,
             text, // plain text body
@@ -71,7 +120,7 @@ const sendEmail = async ({ to, subject, html, text }) => {
 };
 
 const sendInvitation = async (email, token, organizationName, userRole) => {
-    // TODO: Frontend URL from env
+    // TODO: Frontend URL from env or db
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     const inviteLink = `${frontendUrl}/accept-invite?token=${token}`;
 
@@ -115,5 +164,6 @@ const sendPasswordReset = async (email, token) => {
 
 module.exports = {
     sendInvitation,
-    sendPasswordReset
+    sendPasswordReset,
+    sendEmail // Export generic sender for testing
 };

@@ -46,7 +46,15 @@ app.use('/generated', express.static(path.join(__dirname, 'generated'), {
 }));
 
 // Serve frontend static files
-app.use(express.static(path.join(__dirname, '../frontend/dist')));
+app.use(express.static(path.join(__dirname, '../frontend/dist'), {
+    setHeaders: (res, filePath) => {
+        if (filePath.endsWith('index.html') || filePath.endsWith('sw.js')) {
+            res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+        }
+    }
+}));
 
 // API Routes
 app.use('/api/auth', require('./routes/auth'));
@@ -55,6 +63,7 @@ app.use('/api/customers', require('./routes/customers'));
 app.use('/api/documents', require('./routes/documents'));
 app.use('/api/uploads', require('./routes/uploads'));
 app.use('/api/stats', require('./routes/stats'));
+app.use('/api/admin', require('./routes/adminRoutes'));
 
 // Health check
 app.get('/api/health', (req, res) => {
