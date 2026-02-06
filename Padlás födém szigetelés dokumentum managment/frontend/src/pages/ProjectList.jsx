@@ -26,7 +26,8 @@ const ProjectList = () => {
             const response = await projectsAPI.getAll(filters);
             setProjects(response.data || []);
         } catch (error) {
-            showToast('Hiba a projektek betöltésekor', 'error');
+            const errorMessage = error.response?.data?.error || error.message || 'Hiba a projektek betöltésekor';
+            showToast(errorMessage, 'error');
             console.error(error);
         } finally {
             setLoading(false);
@@ -143,11 +144,36 @@ const ProjectList = () => {
                                     <span className="label">Ügyfél:</span>
                                     <span className="value">
                                         {project.customer_name || 'N/A'}
-                                        {project.customer_name?.includes('(Vázlat)') && (
-                                            <span style={{ color: '#ef4444', marginLeft: '5px', fontSize: '0.8em' }} title="Hiányos adatok">
-                                                ⚠️
-                                            </span>
-                                        )}
+                                        {(() => {
+                                            const missing = [];
+                                            if (!project.customer_name) missing.push('Név');
+                                            // if (!project.customer_email) missing.push('Email'); // Email nem kulcsfontosságú
+                                            if (!project.customer_phone) missing.push('Telefon');
+                                            if (!project.customer_city || !project.customer_street) missing.push('Lakcím');
+                                            if (!project.net_area) missing.push('Terület');
+                                            if (!project.has_floor_plan) missing.push('Alaprajz');
+                                            if (!project.customer_signature_data) missing.push('Aláírás');
+
+                                            if (missing.length > 0) {
+                                                return (
+                                                    <span
+                                                        style={{ color: '#f59e0b', marginLeft: '8px', cursor: 'help', fontSize: '1.1em' }}
+                                                        title={`Hiányzó adatok: ${missing.join(', ')}`}
+                                                    >
+                                                        ⚠️
+                                                    </span>
+                                                );
+                                            }
+                                            return null;
+                                        })()}
+                                    </span>
+                                </div>
+                                <div className="info-row">
+                                    <span className="label">Lakcím:</span>
+                                    <span className="value" style={{ fontSize: '0.9em' }}>
+                                        {project.customer_city ?
+                                            `${project.customer_postal_code || ''} ${project.customer_city}, ${project.customer_street || ''} ${project.customer_house_number || ''}`
+                                            : 'N/A'}
                                     </span>
                                 </div>
                                 <div className="info-row">

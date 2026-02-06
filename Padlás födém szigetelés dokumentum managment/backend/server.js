@@ -14,6 +14,7 @@ const customerRoutes = require('./routes/customers');
 const documentRoutes = require('./routes/documents');
 const uploadRoutes = require('./routes/uploads');
 const statsRoutes = require('./routes/stats');
+const remoteRoutes = require('./routes/remote');
 
 // Import middleware
 const errorHandler = require('./middleware/errorHandler');
@@ -24,11 +25,11 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    origin: true, // Allow all origins including same-origin
     credentials: true
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(morgan('dev'));
 
 // Static file serving
@@ -64,13 +65,51 @@ app.use('/api/documents', require('./routes/documents'));
 app.use('/api/uploads', require('./routes/uploads'));
 app.use('/api/stats', require('./routes/stats'));
 app.use('/api/admin', require('./routes/adminRoutes'));
+app.use('/api/remote', require('./routes/remote'));
+app.use('/api/materials', require('./routes/materials'));
 
 // Health check
+// DEBUG ROUTE for Database Connection (Placed here to avoid wildcard shadowing)
+app.get('/api/debug-db', async (req, res) => {
+    const db = require('./config/database');
+    try {
+        const result = await db.query('SELECT NOW() as time, current_user, current_database()');
+        res.json({
+            status: 'OK',
+            message: 'Database connection success',
+            data: result.rows[0],
+            env: {
+                node_env: process.env.NODE_ENV,
+                has_db_url: !!process.env.DATABASE_URL
+            }
+        });
+    } catch (err) {
+        res.status(500).json({
+            status: 'ERROR',
+            message: 'Database connection failed',
+            error: err.message,
+            stack: err.stack,
+            env: {
+                node_env: process.env.NODE_ENV,
+                has_db_url: !!process.env.DATABASE_URL
+            }
+        });
+    }
+});
+
 app.get('/api/health', (req, res) => {
     res.json({
         status: 'OK',
         timestamp: new Date().toISOString(),
         environment: process.env.NODE_ENV
+    });
+});
+
+app.get('/api/version', (req, res) => {
+    res.json({
+        version: '2.1',
+        timestamp: new Date().toISOString(),
+        note: 'SignaturePad + New Doc Type'
     });
 });
 
@@ -83,19 +122,54 @@ app.get('*', (req, res) => {
 app.use(errorHandler);
 
 // Start server
-app.listen(PORT, async () => {
-    console.log(`🚀 Backend server running on http://localhost:${PORT}`);
+console.log(`[Server] Starting application...`);
+console.log(`[Server] Port configured as: ${PORT}`);
+
+
+
+app.listen(PORT, () => {
+    console.log(`🚀 Backend server running on http://localhost:${PORT} (v2.2 - Production)`);
     console.log(`📝 Environment: ${process.env.NODE_ENV}`);
     console.log(`🗄️  Database: ${process.env.DATABASE_URL ? 'Connected' : 'Not configured'}`);
+    console.log(`🔑 Supabase URL: ${process.env.SUPABASE_URL ? 'Set' : 'MISSING'}`);
+    console.log(`🔑 Supabase Key: ${process.env.SUPABASE_KEY ? 'Set' : 'MISSING'}`);
 
     // Verify database connection on startup
+    const db = require('./config/database');
+
+    // DEBUG: Check static files
+    const fs = require('fs');
+    const frontendPath = path.join(__dirname, '../frontend/dist');
+    const indexPath = path.join(frontendPath, 'index.html');
+
+    console.log('🔍 DEBUG: Current __dirname:', __dirname);
+    console.log('🔍 DEBUG: Target frontend path:', frontendPath);
+
     try {
-        const db = require('./config/database');
-        const result = await db.query('SELECT NOW()');
-        console.log('✅ Database connected successfully at:', result.rows[0].now);
+        if (fs.existsSync(frontendPath)) {
+            console.log('✅ Frontend dist folder exists');
+            const files = fs.readdirSync(frontendPath);
+            console.log('📂 Files in dist:', files);
+        } else {
+            console.error('❌ Frontend dist folder MISSING at:', frontendPath);
+        }
+
+        if (fs.existsSync(indexPath)) {
+            console.log('✅ index.html found');
+        } else {
+            console.error('❌ index.html MISSING');
+        }
     } catch (err) {
-        console.error('❌ Database connection FAILED:', err.message);
+        console.error('❌ filesystem check error:', err);
     }
+
+    db.query('SELECT NOW()')
+        .then(result => {
+            console.log('✅ Database connected successfully at:', result.rows[0].now);
+        })
+        .catch(err => {
+            console.error('❌ Database connection FAILED:', err.message);
+        });
 });
 
 module.exports = app;

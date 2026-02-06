@@ -9,23 +9,7 @@ if (!fs.existsSync(uploadDir)) {
 }
 
 // Storage configuration
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        const type = req.body.photoType || 'general';
-        const dir = path.join(uploadDir, type);
-
-        if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
-        }
-
-        cb(null, dir);
-    },
-    filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const ext = path.extname(file.originalname);
-        cb(null, file.fieldname + '-' + uniqueSuffix + ext);
-    }
-});
+const storage = multer.memoryStorage();
 
 // File filter
 const fileFilter = (req, file, cb) => {

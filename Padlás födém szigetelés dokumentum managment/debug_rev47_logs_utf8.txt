@@ -1,0 +1,33 @@
+﻿python.exe : ERROR: (
+gcloud.run.services.l
+ogs.read) unrecognize
+d arguments:
+At C:\Users\Admin\App
+Data\Local\Google\Clo
+ud SDK\google-cloud-s
+dk\bin\gcloud.ps1:114
+ char:3
++   & "$cloudsdk_pyth
+on" $run_args_array
++   ~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo   
+           : NotSpe  
+  cified: (ERROR:    
+ (gcloud....ized     
+arguments::Strin    g
+) [], RemoteExc    ep
+tion
+    + FullyQualified 
+   ErrorId : Native  
+  CommandError
+ 
+  --revision (did you
+ mean '--region'?)
+  padlas-fodem-sziget
+eles-00047-wb2
+  To search the help 
+text of gcloud comman
+ds, run:
+  gcloud help -- SEAR
+CH_TERMS

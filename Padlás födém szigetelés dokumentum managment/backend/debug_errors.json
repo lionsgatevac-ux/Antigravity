@@ -1,0 +1,185 @@
+{
+  "timestamp": "2026-02-05T18:55:40.732Z",
+  "type": "CREATE_PROJECT_ERROR",
+  "error": "column \"pf_kivul_fodemen\" of relation \"project_details\" does not exist",
+  "stack": "error: column \"pf_kivul_fodemen\" of relation \"project_details\" does not exist\n    at C:\\Users\\Admin\\OneDrive\\Asztali gép\\Antigravity\\Padlás födém szigetelés dokumentum managment\\node_modules\\pg\\lib\\client.js:588:17\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async C:\\Users\\Admin\\OneDrive\\Asztali gép\\Antigravity\\Padlás födém szigetelés dokumentum managment\\backend\\routes\\projects.js:142:35\n    at async transaction (C:\\Users\\Admin\\OneDrive\\Asztali gép\\Antigravity\\Padlás födém szigetelés dokumentum managment\\backend\\config\\database.js:119:24)\n    at async C:\\Users\\Admin\\OneDrive\\Asztali gép\\Antigravity\\Padlás födém szigetelés dokumentum managment\\backend\\routes\\projects.js:106:24",
+  "body": {
+    "customer": {
+      "full_name": "Test Customer Attic",
+      "birth_name": "Test Birth",
+      "mother_name": "Test Mother",
+      "phone": "+36301234567",
+      "email": "test@attic.com",
+      "address_postal_code": "1234",
+      "address_city": "Test City",
+      "address_street": "Test Street",
+      "address_house_number": "1",
+      "id_number": "123456AA"
+    },
+    "property": {
+      "address_postal_code": "1234",
+      "address_city": "Test City",
+      "address_street": "Test Street",
+      "address_house_number": "1",
+      "hrsz": "123/45",
+      "building_year": "2000",
+      "building_type": "családi ház",
+      "structure_type": "fa",
+      "structure_thickness": "20",
+      "unheated_space_type": "nincs",
+      "unheated_space_area": "",
+      "unheated_space_name": "",
+      "heating_type": "gáz készülék"
+    },
+    "details": {
+      "gross_area": "100",
+      "chimney_area": "1",
+      "attic_door_area": "2",
+      "other_deducted_area": "0",
+      "net_area": "97",
+      "net_amount": "100000",
+      "energy_saving_gj": "5",
+      "labor_cost": "50000",
+      "hem_value": "5",
+      "government_support": "0",
+      "insulation_type": "Test Insulation",
+      "vapor_barrier_type": "Test Vapor",
+      "breathable_membrane_type": "Test Membrane",
+      "pf_kivul_fodemen": true,
+      "pf_kivul_oromfal": false,
+      "pf_kivul_bonthato": true,
+      "pf_kivul_egyeb": true,
+      "pf_kivul_egyeb_szoveg": "Teszt egyeb szoveg"
+    }
+  },
+  "user": {
+    "id": 1,
+    "email": "admin@bozso.hu",
+    "role": "admin",
+    "organization_id": "ad0c77ec-4897-4724-9c76-0172ced5cad4"
+  }
+},
+{
+  "timestamp": "2026-02-06T05:00:28.297Z",
+  "type": "UPDATE_PROJECT_ERROR",
+  "error": "bind message supplies 16 parameters, but prepared statement \"\" requires 14",
+  "stack": "error: bind message supplies 16 parameters, but prepared statement \"\" requires 14\n    at C:\\Users\\Admin\\OneDrive\\Asztali gép\\Antigravity\\Padlás födém szigetelés dokumentum managment\\node_modules\\pg\\lib\\client.js:588:17\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async C:\\Users\\Admin\\OneDrive\\Asztali gép\\Antigravity\\Padlás födém szigetelés dokumentum managment\\backend\\routes\\projects.js:306:36\n    at async transaction (C:\\Users\\Admin\\OneDrive\\Asztali gép\\Antigravity\\Padlás födém szigetelés dokumentum managment\\backend\\config\\database.js:119:24)\n    at async C:\\Users\\Admin\\OneDrive\\Asztali gép\\Antigravity\\Padlás födém szigetelés dokumentum managment\\backend\\routes\\projects.js:269:24",
+  "body": {
+    "customer": {
+      "full_name": "Teszt Elek 701",
+      "birth_name": "Teszt Elek 701",
+      "mother_name": "Teszt Anyuka",
+      "phone": "06309876543",
+      "email": "teszt701@pelda.hu",
+      "address_postal_code": "1111",
+      "address_city": "Budapest",
+      "address_street": "Teszt utca",
+      "address_house_number": "701",
+      "id_number": "123456AB"
+    },
+    "property": {
+      "address_postal_code": "1111",
+      "address_city": "Budapest",
+      "address_street": "Teszt utca",
+      "address_house_number": "701",
+      "hrsz": "1234/701",
+      "building_year": 1990,
+      "building_type": "családi ház",
+      "structure_type": "vasbeton",
+      "structure_thickness": "20",
+      "unheated_space_type": "garázs",
+      "unheated_space_area": "25",
+      "unheated_space_name": "",
+      "heating_type": "gáz készülék"
+    },
+    "details": {
+      "gross_area": "131.00",
+      "chimney_area": "1.00",
+      "attic_door_area": "1.50",
+      "other_deducted_area": "0.00",
+      "net_area": "128.50",
+      "net_amount": "734102.00",
+      "energy_saving_gj": "59.24",
+      "labor_cost": "0",
+      "hem_value": "734102.00",
+      "government_support": "0",
+      "insulation_type": "Thermowool Basic üveggyapot tekercs (0.039)",
+      "vapor_barrier_type": "MP Linopore VY 1500 párafékező takarófólia 60 g-os (75m2)",
+      "breathable_membrane_type": "MP Linopore WP 100 páraáteresztő takarófólia (75m2)",
+      "attic_door_insulated": false,
+      "pf_kivul_fodemen": true,
+      "pf_kivul_oromfal": false,
+      "pf_kivul_bonthato": false,
+      "pf_kivul_egyeb": false,
+      "pf_kivul_egyeb_szoveg": ""
+    }
+  },
+  "user": {
+    "id": 1,
+    "email": "admin@bozso.hu",
+    "role": "admin",
+    "organization_id": "ad0c77ec-4897-4724-9c76-0172ced5cad4"
+  }
+},
+{
+  "timestamp": "2026-02-06T05:00:38.134Z",
+  "type": "UPDATE_PROJECT_ERROR",
+  "error": "bind message supplies 16 parameters, but prepared statement \"\" requires 14",
+  "stack": "error: bind message supplies 16 parameters, but prepared statement \"\" requires 14\n    at C:\\Users\\Admin\\OneDrive\\Asztali gép\\Antigravity\\Padlás födém szigetelés dokumentum managment\\node_modules\\pg\\lib\\client.js:588:17\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async C:\\Users\\Admin\\OneDrive\\Asztali gép\\Antigravity\\Padlás födém szigetelés dokumentum managment\\backend\\routes\\projects.js:306:36\n    at async transaction (C:\\Users\\Admin\\OneDrive\\Asztali gép\\Antigravity\\Padlás födém szigetelés dokumentum managment\\backend\\config\\database.js:119:24)\n    at async C:\\Users\\Admin\\OneDrive\\Asztali gép\\Antigravity\\Padlás födém szigetelés dokumentum managment\\backend\\routes\\projects.js:269:24",
+  "body": {
+    "customer": {
+      "full_name": "Teszt Elek 701",
+      "birth_name": "Teszt Elek 701",
+      "mother_name": "Teszt Anyuka",
+      "phone": "06309876543",
+      "email": "teszt701@pelda.hu",
+      "address_postal_code": "1111",
+      "address_city": "Budapest",
+      "address_street": "Teszt utca",
+      "address_house_number": "701",
+      "id_number": "123456AB"
+    },
+    "property": {
+      "address_postal_code": "1111",
+      "address_city": "Budapest",
+      "address_street": "Teszt utca",
+      "address_house_number": "701",
+      "hrsz": "1234/701",
+      "building_year": 1990,
+      "building_type": "családi ház",
+      "structure_type": "vasbeton",
+      "structure_thickness": "20",
+      "unheated_space_type": "garázs",
+      "unheated_space_area": "25",
+      "unheated_space_name": "",
+      "heating_type": "gáz készülék"
+    },
+    "details": {
+      "gross_area": "131.00",
+      "chimney_area": "1.00",
+      "attic_door_area": "1.50",
+      "other_deducted_area": "0.00",
+      "net_area": "128.50",
+      "net_amount": "734102.00",
+      "energy_saving_gj": "59.24",
+      "labor_cost": "0",
+      "hem_value": "734102.00",
+      "government_support": "0",
+      "insulation_type": "Thermowool Basic üveggyapot tekercs (0.039)",
+      "vapor_barrier_type": "MP Linopore VY 1500 párafékező takarófólia 60 g-os (75m2)",
+      "breathable_membrane_type": "MP Linopore WP 100 páraáteresztő takarófólia (75m2)",
+      "attic_door_insulated": false,
+      "pf_kivul_fodemen": true,
+      "pf_kivul_oromfal": false,
+      "pf_kivul_bonthato": false,
+      "pf_kivul_egyeb": false,
+      "pf_kivul_egyeb_szoveg": ""
+    }
+  },
+  "user": {
+    "id": 1,
+    "email": "admin@bozso.hu",
+    "role": "admin",
+    "organization_id": "ad0c77ec-4897-4724-9c76-0172ced5cad4"
+  }
+},

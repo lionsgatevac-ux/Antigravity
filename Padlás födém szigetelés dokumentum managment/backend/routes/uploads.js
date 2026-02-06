@@ -2,45 +2,86 @@ const express = require('express');
 const router = express.Router();
 const upload = require('../middleware/upload');
 const { query } = require('../config/database');
+const { uploadFile } = require('../services/supabaseStorage');
+const path = require('path');
 
 // POST upload photo
 router.post('/photo', upload.single('photo'), async (req, res, next) => {
     try {
+        console.log('[Upload-Debug] Request received for /photo');
+        console.log('[Upload-Debug] Body:', req.body);
+
         if (!req.file) {
+            console.error('[Upload-Debug] No file in request');
             return res.status(400).json({
                 success: false,
                 error: 'No file uploaded'
             });
         }
+        console.log('[Upload-Debug] File details:', {
+            originalName: req.file.originalname,
+            size: req.file.size,
+            mimetype: req.file.mimetype
+        });
 
         const { projectId, photoType } = req.body;
+        const type = photoType || 'general';
+
+        if (!projectId) {
+            throw new Error('Project ID is missing from request body');
+        }
+
+        // Upload to Supabase
+        // Path: photo_type/project_id/filename
+        const ext = path.extname(req.file.originalname);
+        const filename = `photo-${Date.now()}-${Math.round(Math.random() * 1E6)}${ext}`;
+        const storagePath = `${type}/${projectId}/${filename}`;
+
+        let publicUrl;
+        try {
+            console.log(`[Upload-Debug] Uploading file to Supabase: ${storagePath}`);
+            publicUrl = await uploadFile(req.file.buffer, req.file.mimetype, storagePath);
+
+            if (!publicUrl || !publicUrl.startsWith('http')) {
+                throw new Error(`Invalid Supabase URL returned: ${publicUrl}`);
+            }
+            console.log(`[Upload-Debug] Upload successful, URL: ${publicUrl}`);
+        } catch (uploadError) {
+            console.error('[Upload-Debug] Supabase upload failed:', uploadError);
+            throw new Error(`Feltöltési hiba: ${uploadError.message}`);
+        }
 
         // Save photo record to database
+        console.log('[Upload-Debug] Inserting into database...');
         const result = await query(
             `INSERT INTO photos (project_id, photo_type, file_path, file_url, metadata)
        VALUES ($1, $2, $3, $4, $5) RETURNING *`,
             [
                 projectId,
-                photoType || 'general',
-                req.file.path,
-                `/uploads/${photoType || 'general'}/${req.file.filename}`,
+                type,
+                publicUrl,
+                publicUrl,
                 JSON.stringify({
                     originalName: req.file.originalname,
                     size: req.file.size,
-                    mimetype: req.file.mimetype
+                    mimetype: req.file.mimetype,
+                    storage: 'supabase'
                 })
             ]
         );
+        console.log('[Upload-Debug] Database insert successful, ID:', result.rows[0].id);
 
         res.json({
             success: true,
             data: {
                 id: result.rows[0].id,
                 url: result.rows[0].file_url,
-                fileName: req.file.filename
+                fileName: filename
             }
         });
     } catch (error) {
+        console.error('[Upload-Debug] Route Error:', error);
+        // Ensure error is logged to file via generic handler or manual if needed
         next(error);
     }
 });
@@ -56,21 +97,33 @@ router.post('/photos/bulk', upload.array('photos', 20), async (req, res, next) =
         }
 
         const { projectId, photoType } = req.body;
+        const type = photoType || 'general';
         const uploadedPhotos = [];
 
         for (const file of req.files) {
+            const ext = path.extname(file.originalname);
+            const filename = `photo-${Date.now()}-${Math.round(Math.random() * 1E6)}${ext}`;
+            const storagePath = `${type}/${projectId}/${filename}`;
+
+            const publicUrl = await uploadFile(file.buffer, file.mimetype, storagePath);
+
+            if (!publicUrl || !publicUrl.startsWith('http')) {
+                throw new Error(`Invalid Supabase URL returned for file ${file.originalname}: ${publicUrl}`);
+            }
+
             const result = await query(
                 `INSERT INTO photos (project_id, photo_type, file_path, file_url, metadata)
                  VALUES ($1, $2, $3, $4, $5) RETURNING *`,
                 [
                     projectId,
-                    photoType || 'general',
-                    file.path,
-                    `/uploads/${photoType || 'general'}/${file.filename}`,
+                    type,
+                    publicUrl,
+                    publicUrl,
                     JSON.stringify({
                         originalName: file.originalname,
                         size: file.size,
-                        mimetype: file.mimetype
+                        mimetype: file.mimetype,
+                        storage: 'supabase'
                     })
                 ]
             );
@@ -99,19 +152,25 @@ router.post('/signature', upload.single('signature'), async (req, res, next) => 
 
         const { projectId, signatureType } = req.body; // customer or contractor
 
-        // Update document record with signature path
+        const ext = path.extname(req.file.originalname);
+        const filename = `sig-${signatureType}-${Date.now()}${ext}`;
+        const storagePath = `signatures/${projectId}/${filename}`;
+
+        const publicUrl = await uploadFile(req.file.buffer, req.file.mimetype, storagePath);
+
+        // Update document record with signature path (URL now)
         await query(
             `UPDATE documents 
        SET ${signatureType}_signature_path = $1
        WHERE project_id = $2`,
-            [req.file.path, projectId]
+            [publicUrl, projectId]
         );
 
         res.json({
             success: true,
             data: {
-                url: `/uploads/${req.file.filename}`,
-                fileName: req.file.filename
+                url: publicUrl,
+                fileName: filename
             }
         });
     } catch (error) {

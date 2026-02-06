@@ -9,6 +9,22 @@ const PhotoGallery = ({ projectId, refreshTrigger }) => {
     const [filter, setFilter] = useState('all');
     const { showToast } = useApp();
 
+    // Helper to constructing absolute URLs
+    const getImageUrl = (url) => {
+        if (!url) return '';
+        if (url.startsWith('http')) return url;
+
+        // Remove /api from VITE_API_URL to get base
+        const userApiUrl = import.meta.env.VITE_API_URL;
+        const backendBase = userApiUrl
+            ? userApiUrl.replace(/\/api\/?$/, '')
+            : window.location.origin; // Fallback to origin (works in dev with proxy)
+
+        // Ensure url starts with /
+        const path = url.startsWith('/') ? url : `/${url}`;
+        return `${backendBase}${path}`;
+    };
+
     useEffect(() => {
         loadPhotos();
     }, [projectId, refreshTrigger]);
@@ -79,45 +95,59 @@ const PhotoGallery = ({ projectId, refreshTrigger }) => {
                 gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
                 gap: '15px'
             }}>
-                {filteredPhotos.map((photo) => (
-                    <div key={photo.id} className="photo-card" style={{
-                        border: '1px solid #eee',
-                        borderRadius: '8px',
-                        overflow: 'hidden',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                        backgroundColor: 'white',
-                        position: 'relative'
-                    }}>
-                        <div className="photo-wrapper" style={{ aspectRatio: '4/3', overflow: 'hidden' }}>
-                            <img
-                                src={`${import.meta.env.PROD ? '' : 'http://localhost:3000'}${photo.file_url}`}
-                                alt={photo.photo_type}
-                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                onClick={() => window.open(`${import.meta.env.PROD ? '' : 'http://localhost:3000'}${photo.file_url}`, '_blank')}
-                            />
-                        </div>
-                        <div className="photo-info" style={{ padding: '8px', fontSize: '0.8rem' }}>
-                            <span className={`status-badge status-${photo.photo_type}`} style={{ fontSize: '0.7rem' }}>
-                                {getPhotoTypeName(photo.photo_type)}
-                            </span>
-                        </div>
-                        <div className="photo-actions" style={{
-                            position: 'absolute',
-                            top: '5px',
-                            right: '5px',
-                            display: 'flex',
-                            gap: '5px'
+                {filteredPhotos.map((photo) => {
+                    const imageUrl = getImageUrl(photo.file_url);
+                    return (
+                        <div key={photo.id} className="photo-card" style={{
+                            border: '1px solid #eee',
+                            borderRadius: '8px',
+                            overflow: 'hidden',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                            backgroundColor: 'white',
+                            position: 'relative'
                         }}>
-                            <button
-                                onClick={() => window.open(`${import.meta.env.PROD ? '' : 'http://localhost:3000'}${photo.file_url}`, '_blank')}
-                                style={{ background: 'rgba(0,0,0,0.5)', color: 'white', border: 'none', borderRadius: '4px', padding: '4px' }}
-                                title="Megnyitás"
-                            >
-                                <ExternalLink size={14} />
-                            </button>
+                            <div className="photo-wrapper" style={{ aspectRatio: '4/3', overflow: 'hidden', position: 'relative' }}>
+                                <img
+                                    src={imageUrl}
+                                    alt={photo.photo_type}
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }}
+                                    onClick={() => window.open(imageUrl, '_blank')}
+                                    onError={(e) => {
+                                        console.error('Photo failed to load:', imageUrl);
+                                        // Replace with error placeholder DIV instead of SVG for better text handling
+                                        const parent = e.target.parentElement;
+                                        parent.innerHTML = `
+                                            <div style="width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#f0f0f0; color:#999; text-align:center; padding:10px;">
+                                                <span>Kép nem elérhető</span>
+                                                <span style="font-size:0.6em; margin-top:5px; word-break:break-all;">${imageUrl}</span>
+                                            </div>
+                                        `;
+                                    }}
+                                />
+                            </div>
+                            <div className="photo-info" style={{ padding: '8px', fontSize: '0.8rem' }}>
+                                <span className={`status-badge status-${photo.photo_type}`} style={{ fontSize: '0.7rem' }}>
+                                    {getPhotoTypeName(photo.photo_type)}
+                                </span>
+                            </div>
+                            <div className="photo-actions" style={{
+                                position: 'absolute',
+                                top: '5px',
+                                right: '5px',
+                                display: 'flex',
+                                gap: '5px'
+                            }}>
+                                <button
+                                    onClick={() => window.open(imageUrl, '_blank')}
+                                    style={{ background: 'rgba(0,0,0,0.5)', color: 'white', border: 'none', borderRadius: '4px', padding: '4px', cursor: 'pointer' }}
+                                    title="Megnyitás"
+                                >
+                                    <ExternalLink size={14} />
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
         </div>
     );

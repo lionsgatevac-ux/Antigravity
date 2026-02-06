@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { CheckCircle, PenTool } from 'lucide-react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { CheckCircle, PenTool, Mail } from 'lucide-react';
 import { projectsAPI, documentsAPI } from '../services/api';
 import { useApp } from '../context/AppContext';
 import { formatDate } from '../utils/calculations';
@@ -13,6 +13,7 @@ import PhotoGallery from '../components/PhotoGallery';
 
 const ProjectDetails = () => {
     const { id } = useParams();
+    const navigate = useNavigate();
     const [project, setProject] = useState(null);
     const [loading, setLoading] = useState(true);
     const { showToast } = useApp();
@@ -24,6 +25,8 @@ const ProjectDetails = () => {
     const [contractorSignature, setContractorSignature] = useState(null);
     const [refreshPhotos, setRefreshPhotos] = useState(0);
     const [showFloorPlanModal, setShowFloorPlanModal] = useState(false);
+    const [docFormat, setDocFormat] = useState('docx'); // 'docx' or 'pdf'
+
 
     useEffect(() => {
         loadProject();
@@ -52,8 +55,8 @@ const ProjectDetails = () => {
 
     const handleGenerateDocument = async (documentType) => {
         try {
-            showToast('Dokumentum generálása...', 'info');
-            const response = await documentsAPI.generate(id, documentType);
+            showToast(`Dokumentum generálása (${docFormat.toUpperCase()})...`, 'info');
+            const response = await documentsAPI.generate(id, documentType, docFormat);
             showToast('Dokumentum sikeresen generálva!', 'success');
 
             console.log('Document generation response:', response);
@@ -100,6 +103,77 @@ const ProjectDetails = () => {
         }
     };
 
+    const [sendingEmail, setSendingEmail] = useState(false);
+    const [sendingDocuments, setSendingDocuments] = useState(false);
+
+    const handleSendRemoteRequest = async () => {
+        if (!project.email) {
+            showToast('Ügyfél email címe hiányzik!', 'error');
+            return;
+        }
+        if (!confirm(`Biztosan küldesz aláíráskérőt erre a címre: ${project.email}?`)) return;
+
+        try {
+            setSendingEmail(true);
+            showToast('Küldés folyamatban...', 'info');
+            await projectsAPI.sendRemoteRequest(id);
+            showToast('Email sikeresen elküldve!', 'success');
+        } catch (error) {
+            showToast('Hiba a küldéskor: ' + error.message, 'error');
+        } finally {
+            setSendingEmail(false);
+        }
+    };
+
+    const handleSendDocuments = async () => {
+        if (!project.email) {
+            showToast('Ügyfél email címe hiányzik!', 'error');
+            return;
+        }
+        if (!customerSignature) {
+            showToast('Ügyfél aláírása szükséges a dokumentumok küldéséhez!', 'error');
+            return;
+        }
+        if (!confirm(`Biztosan küldesz minden aláírt dokumentumot erre a címre: ${project.email}?`)) return;
+
+        try {
+            setSendingDocuments(true);
+            showToast('Dokumentumok küldése...', 'info');
+            const response = await projectsAPI.sendDocuments(id);
+            showToast(response.message || 'Dokumentumok sikeresen elküldve!', 'success');
+        } catch (error) {
+            showToast('Hiba a küldéskor: ' + error.message, 'error');
+        } finally {
+            setSendingDocuments(false);
+        }
+    };
+
+    const handleExportProject = async () => {
+        try {
+            showToast('Exportálás indítása...', 'info');
+            const blob = await projectsAPI.downloadExport(id);
+
+            // Create a URL for the blob
+            const url = window.URL.createObjectURL(new Blob([blob]));
+            const link = document.createElement('a');
+            link.href = url;
+            // Generate filename with timestamp
+            const filename = `projekt_export_${project.contract_number || id}_${new Date().toISOString().slice(0, 10)}.zip`;
+            link.setAttribute('download', filename);
+
+            document.body.appendChild(link);
+            link.click();
+
+            // Cleanup
+            link.parentNode.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            showToast('Sikeres exportálás!', 'success');
+        } catch (error) {
+            console.error('Export error:', error);
+            showToast('Hiba az exportálás során: ' + (error.message || 'Ismeretlen hiba'), 'error');
+        }
+    };
+
     if (loading) {
         return (
             <div className="loading-container">
@@ -119,10 +193,17 @@ const ProjectDetails = () => {
                 <h1>Projekt Részletek</h1>
                 <button
                     className="btn btn-secondary"
-                    onClick={() => window.open(projectsAPI.exportProject(id), '_blank')}
+                    onClick={handleExportProject}
                     style={{ backgroundColor: '#4f46e5', color: 'white' }}
                 >
                     📦 Összes adat letöltése (ZIP)
+                </button>
+                <button
+                    className="btn btn-secondary"
+                    onClick={() => navigate(`/projects/${id}/edit`)}
+                    style={{ backgroundColor: '#f59e0b', color: 'white', marginLeft: '10px' }}
+                >
+                    ✏️ Szerkesztés
                 </button>
             </div>
 
@@ -156,6 +237,7 @@ const ProjectDetails = () => {
                         <p><strong>HRSZ:</strong> {project.hrsz || '-'}</p>
                         <p><strong>Építés éve:</strong> {project.building_year || '-'}</p>
                         <p><strong>Épület típusa:</strong> {project.building_type || '-'}</p>
+                        <p><strong>Fűtés típusa:</strong> {project.heating_type || '-'}</p>
                     </div>
                     <div>
                         <p><strong>Födém szerkezet:</strong> {project.structure_type || '-'} ({project.structure_thickness || 0} cm)</p>
@@ -206,9 +288,14 @@ const ProjectDetails = () => {
                     <div style={{ marginBottom: '20px', border: '1px solid #eee', borderRadius: '8px', padding: '10px', backgroundColor: '#fdfdfd' }}>
                         <p style={{ fontSize: '0.9em', color: '#666', marginBottom: '10px' }}>Mentett alaprajz:</p>
                         <img
-                            src={`${import.meta.env.PROD ? '' : 'http://localhost:3000'}${project.floor_plan_url}`}
+                            src={project.floor_plan_url.startsWith('http') ? project.floor_plan_url : `${window.location.origin}${project.floor_plan_url}`}
                             alt="Alaprajz"
                             style={{ maxWidth: '100%', borderRadius: '4px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}
+                            onError={(e) => {
+                                console.error('Floor plan image failed to load:', project.floor_plan_url);
+                                e.target.style.display = 'none';
+                                e.target.parentElement.innerHTML = `<p style="color: #999; padding: 20px; text-align: center;">Az alaprajz nem tölthető be. Kérem próbálja újra feltölteni.<br><span style="font-size: 0.8em; color: #ccc;">(${project.floor_plan_url})</span></p>`;
+                            }}
                         />
                     </div>
                 )}
@@ -268,12 +355,82 @@ const ProjectDetails = () => {
                         >
                             {customerSignature ? <><CheckCircle size={18} /> Aláírva</> : <><PenTool size={18} /> Aláírás</>}
                         </button>
+
+                        <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #eee' }}>
+                            <button
+                                className="btn btn-secondary"
+                                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.9em', backgroundColor: '#e0f2fe', color: '#0369a1' }}
+                                onClick={handleSendRemoteRequest}
+                                disabled={sendingEmail}
+                            >
+                                <Mail size={16} /> {sendingEmail ? 'Küldés...' : 'Távoli aláírás kérése'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
 
+            {/* Send Documents Button - Show when customer signature present */}
+            {customerSignature && (
+                <div className="card" style={{ backgroundColor: '#f0fdf4', borderColor: '#86efac' }}>
+                    <h2 style={{ color: '#166534' }}>📧 Dokumentumok Küldése</h2>
+                    <p style={{ marginBottom: '15px', color: '#15803d' }}>
+                        Az ügyfél aláírása megvan! Most elküldheti az összes aláírt dokumentumot az ügyfél email címére.
+                    </p>
+                    <button
+                        className="btn btn-primary"
+                        style={{
+                            width: '100%',
+                            backgroundColor: '#16a34a',
+                            fontSize: '1.1em',
+                            padding: '12px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '10px'
+                        }}
+                        onClick={handleSendDocuments}
+                        disabled={sendingDocuments}
+                    >
+                        <Mail size={20} />
+                        {sendingDocuments ? 'Küldés folyamatban...' : 'Dokumentumok Küldése Ügyfélnek'}
+                    </button>
+                </div>
+            )}
+
             <div className="card">
                 <h2>Dokumentumok Generálása</h2>
+
+                {/* Format Toggle */}
+                <div style={{ marginBottom: '15px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <span style={{ fontWeight: 'bold' }}>Formátum:</span>
+                    <button
+                        onClick={() => setDocFormat('docx')}
+                        style={{
+                            padding: '5px 10px',
+                            backgroundColor: docFormat === 'docx' ? '#2563eb' : '#e5e7eb',
+                            color: docFormat === 'docx' ? 'white' : 'black',
+                            border: 'none', borderRadius: '4px', cursor: 'pointer'
+                        }}
+                    >
+                        DOCX (Szerkeszthető)
+                    </button>
+                    <button
+                        onClick={() => setDocFormat('pdf')}
+                        style={{
+                            padding: '5px 10px',
+                            backgroundColor: docFormat === 'pdf' ? '#dc2626' : '#e5e7eb',
+                            color: docFormat === 'pdf' ? 'white' : 'black',
+                            border: 'none', borderRadius: '4px', cursor: 'pointer'
+                        }}
+                    >
+                        PDF (Végleges)
+                    </button>
+                </div>
+
+                {/* Format Toggle */}
+
+
                 <div className="document-buttons">
                     <button
                         className="btn btn-primary"
@@ -299,6 +456,12 @@ const ProjectDetails = () => {
                     >
                         📄 HEM Megállapodás
                     </button>
+                    <button
+                        className="btn btn-primary"
+                        onClick={() => handleGenerateDocument('tamogatas_igenylo')}
+                    >
+                        📄 Támogatás Igénylő Nyilatkozat
+                    </button>
                 </div>
             </div>
 
@@ -318,6 +481,7 @@ const ProjectDetails = () => {
 
             <FloorPlanModal
                 projectId={id}
+                initialImageUrl={project.floor_plan_url}
                 isOpen={showFloorPlanModal}
                 onClose={() => setShowFloorPlanModal(false)}
                 onSaveSuccess={() => {

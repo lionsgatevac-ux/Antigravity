@@ -45,7 +45,7 @@ const MainLayout = ({ children }) => {
 
             <footer className="footer">
                 <div className="container">
-                    <p>&copy; 2025 BO-ZSO Hungary Kft - Minden jog fenntartva</p>
+                    <p>&copy; 2025 BO-ZSO Hungary Kft - Minden jog fenntartva (v28 - Email Warning Removed)</p>
                 </div>
             </footer>
         </div>

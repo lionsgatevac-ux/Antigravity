@@ -4,12 +4,13 @@ import { Pencil, Type, Eraser, Trash2, Square, Circle, Pen, Save, Undo, Ruler, X
 import { uploadsAPI } from '../services/api';
 import { useApp } from '../context/AppContext';
 
-export default function FloorPlanModal({ projectId, isOpen, onClose, onSaveSuccess }) {
+export default function FloorPlanModal({ projectId, isOpen, onClose, onSaveSuccess, initialImageUrl }) {
     const canvasRef = useRef(null);
     const startPosRef = useRef(null); // Use ref to avoid state update race conditions
     const { showToast } = useApp();
 
     const [elements, setElements] = useState([]);
+    const [backgroundImage, setBackgroundImage] = useState(null);
     const [tool, setTool] = useState('line');
     const [isDrawing, setIsDrawing] = useState(false);
     const [currentElement, setCurrentElement] = useState(null);
@@ -25,6 +26,18 @@ export default function FloorPlanModal({ projectId, isOpen, onClose, onSaveSucce
     useEffect(() => {
         if (isOpen) {
             document.body.style.overflow = 'hidden';
+
+            // Load initial image if exists and not already loaded
+            if (initialImageUrl && !backgroundImage) {
+                const img = new Image();
+                img.crossOrigin = "anonymous"; // Important for canvas export
+                const baseUrl = import.meta.env.PROD ? '' : 'http://localhost:3000';
+                img.src = initialImageUrl.startsWith('http') ? initialImageUrl : `${baseUrl}${initialImageUrl}`;
+                img.onload = () => {
+                    setBackgroundImage(img);
+                };
+            }
+
             setTimeout(() => {
                 if (canvasRef.current) {
                     canvasRef.current.width = INTERNAL_WIDTH;
@@ -34,13 +47,17 @@ export default function FloorPlanModal({ projectId, isOpen, onClose, onSaveSucce
             }, 100);
         } else {
             document.body.style.overflow = 'unset';
+            // Reset state on close if needed, but keeping it might be better?
+            // For now let's keep elements but maybe reset if a new project is loaded.
+            // Actually, we should probably reset elements when reopening.
+            // But let's stick to the request: edit existing.
         }
         return () => { document.body.style.overflow = 'unset'; };
-    }, [isOpen]);
+    }, [isOpen, initialImageUrl]);
 
     useEffect(() => {
         if (isOpen) drawCanvas();
-    }, [elements, currentElement, isOpen]);
+    }, [elements, currentElement, isOpen, backgroundImage]);
 
     const drawGrid = (ctx, canvas) => {
         ctx.strokeStyle = '#e5e7eb';
@@ -109,6 +126,12 @@ export default function FloorPlanModal({ projectId, isOpen, onClose, onSaveSucce
         const ctx = canvas.getContext('2d');
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Draw background image if exists
+        if (backgroundImage) {
+            ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
+        }
+
         if (!exportMode) drawGrid(ctx, canvas);
         elements.forEach(el => drawElement(ctx, el));
         if (currentElement && !exportMode) {
@@ -189,7 +212,12 @@ export default function FloorPlanModal({ projectId, isOpen, onClose, onSaveSucce
         }
     };
 
-    const clearAll = () => { if (confirm('Biztosan törölni szeretnéd az összes rajzot?')) setElements([]); };
+    const clearAll = () => {
+        if (confirm('Biztosan törölni szeretnéd a rajzot? Ez a betöltött alaprajzot is törli a vászonról.')) {
+            setElements([]);
+            setBackgroundImage(null);
+        }
+    };
     const handleUndo = () => { if (elements.length > 0) setElements(elements.slice(0, -1)); };
 
     const saveToProject = async () => {

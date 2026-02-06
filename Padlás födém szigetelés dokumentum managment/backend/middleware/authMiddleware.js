@@ -16,8 +16,11 @@ const authMiddleware = async (req, res, next) => {
 
         // Fetch FRESH user data from DB (to get latest organization_id etc.)
         const result = await query('SELECT id, email, role, organization_id FROM users WHERE id = $1', [decoded.id]);
+        console.log('[AuthMiddleware] Decoded token:', decoded);
+        console.log('[AuthMiddleware] DB Query result count:', result.rows.length);
 
         if (result.rows.length === 0) {
+            console.error('[AuthMiddleware] User not found in DB for ID:', decoded.id);
             return res.status(401).json({ success: false, error: 'Unauthorized: User not found' });
         }
 

@@ -1,0 +1,146 @@
+{
+  "projects": [
+    {
+      "column_name": "id",
+      "data_type": "uuid"
+    },
+    {
+      "column_name": "contract_number",
+      "data_type": "character varying"
+    },
+    {
+      "column_name": "status",
+      "data_type": "character varying"
+    },
+    {
+      "column_name": "created_at",
+      "data_type": "timestamp without time zone"
+    },
+    {
+      "column_name": "updated_at",
+      "data_type": "timestamp without time zone"
+    },
+    {
+      "column_name": "customer_signature_data",
+      "data_type": "text"
+    },
+    {
+      "column_name": "contractor_signature_data",
+      "data_type": "text"
+    },
+    {
+      "column_name": "customer_signed_at",
+      "data_type": "timestamp without time zone"
+    },
+    {
+      "column_name": "contractor_signed_at",
+      "data_type": "timestamp without time zone"
+    },
+    {
+      "column_name": "customer_birth_name",
+      "data_type": "text"
+    },
+    {
+      "column_name": "customer_mother_name",
+      "data_type": "text"
+    },
+    {
+      "column_name": "customer_id_number",
+      "data_type": "text"
+    },
+    {
+      "column_name": "attic_door_insulated",
+      "data_type": "boolean"
+    },
+    {
+      "column_name": "material_vapor_barrier",
+      "data_type": "text"
+    },
+    {
+      "column_name": "material_insulation",
+      "data_type": "text"
+    },
+    {
+      "column_name": "material_vapor_permeable",
+      "data_type": "text"
+    },
+    {
+      "column_name": "floor_plan_data",
+      "data_type": "text"
+    },
+    {
+      "column_name": "user_id",
+      "data_type": "integer"
+    },
+    {
+      "column_name": "organization_id",
+      "data_type": "uuid"
+    },
+    {
+      "column_name": "created_by",
+      "data_type": "integer"
+    },
+    {
+      "column_name": "remote_signature_token",
+      "data_type": "character varying"
+    },
+    {
+      "column_name": "remote_signature_expires_at",
+      "data_type": "timestamp without time zone"
+    }
+  ],
+  "users": [
+    {
+      "column_name": "id",
+      "data_type": "integer"
+    },
+    {
+      "column_name": "email",
+      "data_type": "character varying"
+    },
+    {
+      "column_name": "password_hash",
+      "data_type": "character varying"
+    },
+    {
+      "column_name": "role",
+      "data_type": "character varying"
+    },
+    {
+      "column_name": "full_name",
+      "data_type": "character varying"
+    },
+    {
+      "column_name": "company_name",
+      "data_type": "character varying"
+    },
+    {
+      "column_name": "company_address",
+      "data_type": "character varying"
+    },
+    {
+      "column_name": "company_tax_number",
+      "data_type": "character varying"
+    },
+    {
+      "column_name": "company_reg_number",
+      "data_type": "character varying"
+    },
+    {
+      "column_name": "created_at",
+      "data_type": "timestamp without time zone"
+    },
+    {
+      "column_name": "organization_id",
+      "data_type": "uuid"
+    },
+    {
+      "column_name": "reset_token",
+      "data_type": "character varying"
+    },
+    {
+      "column_name": "reset_token_expires",
+      "data_type": "timestamp without time zone"
+    }
+  ]
+}

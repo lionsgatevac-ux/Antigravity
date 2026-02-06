@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL || 'http://localhost:3000/api');
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 const api = axios.create({
     baseURL: API_URL,
@@ -23,9 +23,12 @@ api.interceptors.request.use(
 api.interceptors.response.use(
     (response) => response.data,
     (error) => {
-        const message = error.response?.data?.error?.message || error.message;
+        const message = error.response?.data?.error?.message || error.response?.data?.error || error.message;
         console.error('API Error:', message);
-        return Promise.reject(new Error(message));
+        // Update the message but return the original error object 
+        // to preserve error.response.status for other interceptors (like logout)
+        error.message = message;
+        return Promise.reject(error);
     }
 );
 
@@ -35,10 +38,14 @@ export const projectsAPI = {
     getById: (id) => api.get(`/projects/${id}`),
     create: (data) => api.post('/projects', data),
     update: (id, data) => api.put(`/projects/${id}`, data),
+    fullUpdate: (id, data) => api.put(`/projects/${id}/full_update`, data),
     bulkUpdate: (data) => api.put('/projects/bulk-status', data),
     delete: (id) => api.delete(`/projects/${id}`),
     exportProject: (id) => `${API_URL}/projects/${id}/export`,
-    saveSignature: (id, data) => api.put(`/projects/${id}/signature`, data)
+    downloadExport: (id) => api.get(`/projects/${id}/export`, { responseType: 'blob' }),
+    saveSignature: (id, data) => api.put(`/projects/${id}/signature`, data),
+    sendRemoteRequest: (id) => api.post(`/projects/${id}/remote-request`),
+    sendDocuments: (id) => api.post(`/projects/${id}/send-documents`)
 };
 
 // Customers API
@@ -52,8 +59,8 @@ export const customersAPI = {
 
 // Documents API
 export const documentsAPI = {
-    generate: (projectId, documentType) =>
-        api.post('/documents/generate', { projectId, documentType }),
+    generate: (projectId, documentType, format) =>
+        api.post('/documents/generate', { projectId, documentType, format }),
     download: (fileName) =>
         `${API_URL}/documents/download/${fileName}`
 };
@@ -87,6 +94,19 @@ export const adminAPI = {
     getEmailSettings: () => api.get('/admin/settings/email'),
     saveEmailSettings: (data) => api.post('/admin/settings/email', data),
     sendTestEmail: (email) => api.post('/admin/settings/test-email', { test_email: email })
+};
+
+// Remote Signature API
+export const remoteAPI = {
+    verify: (token) => api.get(`/remote/verify/${token}`),
+    sign: (token, signatureData) => api.post(`/remote/sign/${token}`, { signatureData })
+};
+
+// Materials API
+export const materialsAPI = {
+    getAll: () => api.get('/materials'),
+    create: (data) => api.post('/materials', data),
+    delete: (id) => api.delete(`/materials/${id}`)
 };
 
 export default api;

@@ -33,7 +33,7 @@ const Login = () => {
             zIndex: 9999
         }}>
             <div className="w-full max-w-md p-8 bg-gray-800 rounded-lg shadow-2xl">
-                <h2 className="text-3xl font-bold mb-6 text-center text-blue-500">Bejelentkezés</h2>
+                <h1 className="text-2xl font-bold text-center mb-6">Bejelentkezés</h1>
 
                 {error && (
                     <div className="bg-red-500/10 border border-red-500 text-red-500 p-3 rounded mb-4">

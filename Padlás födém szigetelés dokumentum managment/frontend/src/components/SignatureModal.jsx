@@ -1,74 +1,72 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { PenTool, X, Check, Trash2 } from 'lucide-react';
+import React, { useRef, useEffect, useState } from 'react';
+import { X, Check, Trash2 } from 'lucide-react';
+import SignaturePad from 'signature_pad';
 
 const SignatureModal = ({ isOpen, onClose, onSave, title }) => {
-    const [isDrawing, setIsDrawing] = useState(false);
     const canvasRef = useRef(null);
-    const [hasSignature, setHasSignature] = useState(false);
+    const signaturePadRef = useRef(null);
+    const [isEmpty, setIsEmpty] = useState(true);
 
+    // Initialize SignaturePad
     useEffect(() => {
         if (isOpen && canvasRef.current) {
             const canvas = canvasRef.current;
-            const ctx = canvas.getContext('2d');
 
-            // Set canvas size based on visual size
-            const rect = canvas.getBoundingClientRect();
-            canvas.width = Math.floor(rect.width);
-            canvas.height = Math.floor(rect.height);
+            // Removed initial sizing logic as it is now handled by resizeCanvas
+            // const ratio = Math.max(window.devicePixelRatio || 1, 1);
+            // canvas.width = canvas.offsetWidth * ratio;
+            // canvas.height = canvas.offsetHeight * ratio;
+            // canvas.getContext("2d").scale(ratio, ratio);
 
-            ctx.strokeStyle = '#526683'; // Blue-grey to match contractor
-            ctx.lineWidth = 1.5;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
+            // Initialize library
+            const signaturePad = new SignaturePad(canvas, {
+                minWidth: 0.5,
+                maxWidth: 2.5,
+                penColor: '#003AAE', // Ink Blue
+                backgroundColor: 'rgba(255, 255, 255, 0)', // Transparent
+                velocityFilterWeight: 0.7,
+            });
+
+            signaturePadRef.current = signaturePad;
+
+            // Track if empty
+            signaturePad.addEventListener("beginStroke", () => setIsEmpty(false));
+            // signaturePad.addEventListener("endStroke", () => {});
+
+            // Handle resize with ResizeObserver
+            const resizeCanvas = () => {
+                const ratio = Math.max(window.devicePixelRatio || 1, 1);
+                const data = signaturePad.toData(); // Preserve data
+
+                canvas.width = canvas.offsetWidth * ratio;
+                canvas.height = canvas.offsetHeight * ratio;
+                canvas.getContext("2d").scale(ratio, ratio);
+
+                signaturePad.clear();
+                signaturePad.fromData(data);
+            };
+
+            // Initial call
+            resizeCanvas();
+
+            // Resize observer to handle responsiveness
+            const resizeObserver = new ResizeObserver(() => {
+                resizeCanvas();
+            });
+            resizeObserver.observe(canvas);
+
+            return () => {
+                signaturePad.off();
+                resizeObserver.disconnect();
+            };
         }
     }, [isOpen]);
 
-    const startDrawing = (e) => {
-        const canvas = canvasRef.current;
-        const rect = canvas.getBoundingClientRect();
-        const ctx = canvas.getContext('2d');
-
-        setIsDrawing(true);
-        setHasSignature(true);
-        ctx.beginPath();
-
-        // Handle both mouse and touch events
-        const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-        const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-
-        if (clientX && clientY) {
-            ctx.moveTo(clientX - rect.left, clientY - rect.top);
-        }
-    };
-
-    const draw = (e) => {
-        if (!isDrawing) return;
-
-        const canvas = canvasRef.current;
-        const rect = canvas.getBoundingClientRect();
-        const ctx = canvas.getContext('2d');
-
-        const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-        const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-
-        if (clientX && clientY) {
-            ctx.lineTo(clientX - rect.left, clientY - rect.top);
-            ctx.stroke();
-        }
-    };
-
-    const stopDrawing = () => {
-        setIsDrawing(false);
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
-        ctx.closePath();
-    };
-
     const clearCanvas = () => {
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        setHasSignature(false);
+        if (signaturePadRef.current) {
+            signaturePadRef.current.clear();
+            setIsEmpty(true);
+        }
     };
 
     const trimCanvas = (canvas) => {
@@ -79,7 +77,8 @@ const SignatureModal = ({ isOpen, onClose, onSave, title }) => {
         let x, y;
 
         for (let i = 0; i < l; i += 4) {
-            if (pixels.data[i + 3] !== 0) {
+            // Threshold filter: ignore very faint pixels (noise)
+            if (pixels.data[i + 3] > 10) {
                 x = (i / 4) % canvas.width;
                 y = Math.floor((i / 4) / canvas.width);
 
@@ -101,7 +100,7 @@ const SignatureModal = ({ isOpen, onClose, onSave, title }) => {
         const trimHeight = bound.bottom - bound.top + 1;
 
         // Add padding
-        const padding = 10;
+        const padding = 25; // Increased from 10 to ensure strokes aren't cut off
         const finalWidth = trimWidth + (padding * 2);
         const finalHeight = trimHeight + (padding * 2);
 
@@ -120,12 +119,15 @@ const SignatureModal = ({ isOpen, onClose, onSave, title }) => {
     };
 
     const handleSave = () => {
-        const canvas = canvasRef.current;
-        const trimmedCanvas = trimCanvas(canvas);
-        const signatureData = trimmedCanvas.toDataURL('image/png');
-        onSave(signatureData);
-        onClose();
-        clearCanvas();
+        if (signaturePadRef.current && !signaturePadRef.current.isEmpty()) {
+            const canvas = canvasRef.current;
+            // Trim the canvas to remove whitespace
+            const trimmedCanvas = trimCanvas(canvas);
+            const dataURL = trimmedCanvas.toDataURL('image/png');
+            onSave(dataURL);
+            onClose();
+            clearCanvas();
+        }
     };
 
     if (!isOpen) return null;
@@ -165,13 +167,6 @@ const SignatureModal = ({ isOpen, onClose, onSave, title }) => {
                 <div style={{ marginBottom: '1rem' }}>
                     <canvas
                         ref={canvasRef}
-                        onMouseDown={startDrawing}
-                        onMouseMove={draw}
-                        onMouseUp={stopDrawing}
-                        onMouseLeave={stopDrawing}
-                        onTouchStart={startDrawing}
-                        onTouchMove={draw}
-                        onTouchEnd={stopDrawing}
                         style={{
                             border: '2px dashed #d1d5db',
                             borderRadius: '0.5rem',
@@ -205,7 +200,7 @@ const SignatureModal = ({ isOpen, onClose, onSave, title }) => {
                     </button>
                     <button
                         onClick={handleSave}
-                        disabled={!hasSignature}
+                        disabled={isEmpty}
                         style={{
                             display: 'flex',
                             alignItems: 'center',
@@ -215,11 +210,11 @@ const SignatureModal = ({ isOpen, onClose, onSave, title }) => {
                             padding: '0.75rem 1.5rem',
                             borderRadius: '0.5rem',
                             border: 'none',
-                            cursor: hasSignature ? 'pointer' : 'not-allowed',
+                            cursor: !isEmpty ? 'pointer' : 'not-allowed',
                             flex: 1,
                             justifyContent: 'center',
                             fontWeight: 600,
-                            opacity: hasSignature ? 1 : 0.5
+                            opacity: !isEmpty ? 1 : 0.5
                         }}
                     >
                         <Check size={18} />

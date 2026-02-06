@@ -12,6 +12,7 @@ const CONTRACTOR_DATA = {
     statisticsNumber: "27030110-4100-113-13",
     mkikNumber: "26B96372",
     insurancePolicy: "95595005769188500",
+    // v18 - STAMP ADDED
     representative: {
         name: "Dobai Tamás",
         birthPlace: "Budapest",
@@ -55,8 +56,42 @@ class DocumentGenerator {
         return new Intl.NumberFormat('hu-HU').format(amount) + ' Ft';
     }
 
+    // Helper to download image from URL
+    async downloadImage(url) {
+        try {
+            console.log(`[DocumentGenerator] Downloading image from: ${url}`);
+            const axios = require('axios');
+            const response = await axios.get(url, { responseType: 'arraybuffer' });
+            const buffer = Buffer.from(response.data);
+            console.log(`[DocumentGenerator] Downloaded ${buffer.length} bytes`);
+
+            // Convert to data URL for better compatibility with image module
+            const base64 = buffer.toString('base64');
+            const dataUrl = `data:image/png;base64,${base64}`;
+            console.log(`[DocumentGenerator] Converted to data URL (${dataUrl.length} chars)`);
+            return dataUrl;
+        } catch (error) {
+            console.error(`[DocumentGenerator] Error downloading image from ${url}:`, error.message);
+            // Return 1x1 transparent PNG as fallback
+            return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+        }
+    }
+
+    // Process data to download remote images
+    async fetchImagesForTemplate(data) {
+        const imageFields = ['alairasugyfel', 'alairaskivitelezo', 'alaprajz', 'alairas'];
+
+        for (const field of imageFields) {
+            if (data[field] && typeof data[field] === 'string' && (data[field].startsWith('http://') || data[field].startsWith('https://'))) {
+                console.log(`[DocumentGenerator] Detected remote URL for ${field}, downloading...`);
+                data[field] = await this.downloadImage(data[field]);
+            }
+        }
+        return data;
+    }
+
     // Generate document from template
-    async generate(templateName, data) {
+    async generate(templateName, data, format = 'docx') {
         // DEBUG: Redirect console output to file
         const logFile = fs.createWriteStream(path.join(__dirname, '../debug_console.log'), { flags: 'a' });
         const originalLog = console.log;
@@ -72,13 +107,36 @@ class DocumentGenerator {
         };
 
         console.log('--- START DOCUMENT GENERATION ---');
+        console.time('FullGenerationTime'); // MEASURE TIME
         console.log(`Requested Template: ${templateName}`);
+        console.log(`Environment: ${process.env.NODE_ENV}`);
         console.log(`User Role: ${data.owner_role}`);
 
         try {
             // Template selection based on role
             let targetTemplate = templateName;
-            if (data.owner_role === 'external') {
+
+            // DATE-BASED VERSIONING LOGIC
+            // If the project was created BEFORE 2026-02-01, use the OLD template for kivitelezoi_nyilatkozat
+            const versionCutoffDate = new Date('2026-02-01T00:00:00.000Z');
+            let projectCreatedAt = null;
+
+            if (data.created_at) {
+                projectCreatedAt = new Date(data.created_at);
+                console.log(`[DEBUG] Project created at: ${projectCreatedAt.toISOString()}`);
+            }
+
+            if (templateName === 'kivitelezoi_nyilatkozat' && projectCreatedAt && projectCreatedAt < versionCutoffDate) {
+                targetTemplate = `${templateName}_OLD`;
+                console.log(`[INFO] Old project detected (created before 2026-02-01). Using LEGACY template: ${targetTemplate}`);
+            }
+
+            // External user overrides (if applicable - currently only for new projects maybe? Or both?)
+            // Assuming external logic applies on top, or maybe external users didn't exist before?
+            // Let's keep existing logic but be careful not to break the OLD logic.
+            // If it's OLD template, we probably shouldn't append _ext unless _OLD_ext exists.
+            // For now, let's assume OLD projects don't have 'external' role logic mapping to a specific file.
+            if (data.owner_role === 'external' && !targetTemplate.includes('_OLD')) {
                 targetTemplate = `${templateName}_ext`;
                 console.log(`External user detected. Using template: ${targetTemplate}`);
             }
@@ -121,44 +179,85 @@ class DocumentGenerator {
                 const opts = {};
                 opts.centered = false;
                 opts.getImage = function (tagValue, tagName) {
-                    console.log(`[ImageModule] getImage called for tag: ${tagName}`);
+                    // console.log(`[ImageModule] getImage called for tag: ${tagName}`); // Too verbose
+
+                    if (Buffer.isBuffer(tagValue)) {
+                        return tagValue;
+                    }
+
                     // tagValue is the base64 string
-                    if (base64Regex.test(tagValue)) {
-                        console.log('[ImageModule] Base64 tag detected');
+                    if (typeof tagValue === 'string' && base64Regex.test(tagValue)) {
+                        // console.log('[ImageModule] Base64 tag detected');
                         const base64Data = tagValue.replace(base64Regex, "").trim();
                         return Buffer.from(base64Data, 'base64');
                     }
-                    console.log('[ImageModule] Not a base64 string, returning binary');
+                    // console.log('[ImageModule] Not a base64 string, returning binary');
                     return Buffer.from(tagValue, 'binary');
                 };
                 opts.getSize = function (img, tagValue, tagName) {
-                    console.log(`[ImageModule] getSize called for tag: ${tagName}`);
-                    if (base64Regex.test(tagValue)) {
-                        // Try to get size from image
-                        try {
-                            const base64Data = tagValue.replace(base64Regex, "").trim();
-                            const buffer = Buffer.from(base64Data, 'base64');
-                            const dimensions = sizeOf(buffer);
-                            console.log(`[ImageModule] Dimensions: ${dimensions.width}x${dimensions.height}`);
-
-                            // SCALE LOGIC
-                            let maxWidth = 200; // Default for signatures
-                            if (tagName === 'alaprajz') {
-                                maxWidth = 600; // Increased by another 15%
-                                console.log('[ImageModule] tagName is alaprajz, using maxWidth 600');
-                            }
-
-                            if (dimensions.width > maxWidth) {
-                                const ratio = maxWidth / dimensions.width;
-                                return [maxWidth, dimensions.height * ratio];
-                            }
-                            return [dimensions.width, dimensions.height];
-                        } catch (e) {
-                            console.error('[ImageModule] Error calculating size:', e);
-                            return [150, 50]; // Fallback size
-                        }
+                    // console.log(`[ImageModule] getSize called for tag: ${tagName}`);
+                    let buffer;
+                    if (Buffer.isBuffer(img)) {
+                        buffer = img;
+                    } else if (typeof tagValue === 'string' && base64Regex.test(tagValue)) {
+                        const base64Data = tagValue.replace(base64Regex, "").trim();
+                        buffer = Buffer.from(base64Data, 'base64');
+                    } else {
+                        buffer = Buffer.from(tagValue, 'binary');
                     }
-                    return [150, 50];
+
+                    try {
+                        const dimensions = sizeOf(buffer);
+                        // console.log(`[ImageModule] Dimensions: ${dimensions.width}x${dimensions.height}`);
+
+                        // SCALE LOGIC
+                        if (tagName.includes('alairas')) {
+                            // OPTIMIZED: Wide but short to fit lines
+                            const targetWidth = 200;
+                            const maxHeight = 40; // Reduced to 40px to ensure it floats ABOVE lines
+
+                            const ratio = dimensions.width / dimensions.height;
+                            let newWidth = targetWidth;
+                            let newHeight = newWidth / ratio;
+
+                            if (newHeight > maxHeight) {
+                                newHeight = maxHeight;
+                                newWidth = newHeight * ratio;
+                            }
+                            return [newWidth, newHeight];
+                        }
+
+                        if (tagName === 'belyegzo') {
+                            // OPTIMIZED: Keep aspect ratio, strictly limit height
+                            const maxWidth = 150;
+                            const maxHeight = 40; // Reduced to 40px to match signature line height
+
+                            const ratio = dimensions.width / dimensions.height;
+                            let newWidth = maxWidth;
+                            let newHeight = newWidth / ratio;
+
+                            if (newHeight > maxHeight) {
+                                newHeight = maxHeight;
+                                newWidth = newHeight * ratio;
+                            }
+                            return [newWidth, newHeight];
+                        }
+
+                        let maxWidth = 200; // Default for other images
+                        if (tagName === 'alaprajz') {
+                            maxWidth = 600; // Increased size for floor plan
+                            console.log('[ImageModule] tagName is alaprajz, using maxWidth 600');
+                        }
+
+                        if (dimensions.width > maxWidth) {
+                            const ratio = maxWidth / dimensions.width;
+                            return [maxWidth, dimensions.height * ratio];
+                        }
+                        return [dimensions.width, dimensions.height];
+                    } catch (e) {
+                        console.error('[ImageModule] Error calculating size:', e);
+                        return [150, 50]; // Fallback size
+                    }
                 };
 
                 const imageModule = new ImageModule(opts);
@@ -185,21 +284,24 @@ class DocumentGenerator {
 
             // Check for potential tag issues
             const text = zip.files['word/document.xml'].asText();
-            const debugInfo = {
-                templateContainsImageTag: text.includes('[[%alairasugyfel]]'),
-                templateContainsTextTag: text.includes('[[alairasugyfel]]'),
-                imageModuleLoaded: !!doc.modules.find(m => m.name === 'ImageModule' || m.options), // simplistic check
-                moduleError: null
-            };
 
-            try {
-                fs.writeFileSync(path.join(__dirname, '../debug_log.txt'), JSON.stringify(debugInfo, null, 2));
-            } catch (e) { console.error(e); }
+            // DEBUG: FIND ALL TAGS IN TEMPLATE
+            const tagRegex = /\[\[(.*?)\]\]/g;
+            const matches = [...text.matchAll(tagRegex)];
+            const foundTags = matches.map(m => m[1]);
+            console.log('🔍 FOUND TAGS IN TEMPLATE:', foundTags);
+
+            // SPECIAL CHECK for padlas tags
+            const padlasTags = foundTags.filter(t => t.includes('padlas') || t.includes('attic') || t.includes('pf_'));
+            console.log('🔍 PADLAS RELATED TAGS:', padlasTags);
 
             // Prepare data with formatting
             const formattedData = this.prepareData(data);
 
-            // Render document
+            // DOWNLOAD REMOTE IMAGES
+            await this.fetchImagesForTemplate(formattedData);
+
+            // Render document (DOCX)
             doc.render(formattedData);
 
             // Generate buffer
@@ -208,11 +310,39 @@ class DocumentGenerator {
                 compression: 'DEFLATE'
             });
 
+            if (format === 'pdf') {
+                console.log('[DocumentGenerator] Format is PDF, converting DOCX using LibreOffice...');
+                const libre = require('libreoffice-convert');
+                const util = require('util');
+                const convertAsync = util.promisify(libre.convert);
+
+                try {
+                    // Convert buffer
+                    const pdfBuffer = await convertAsync(buf, '.pdf', undefined);
+
+                    const fileName = `${targetTemplate}_${data.contract_number || Date.now()}.pdf`;
+                    const filePath = path.join(this.generatedDir, fileName);
+                    fs.writeFileSync(filePath, pdfBuffer);
+
+                    console.log('[DocumentGenerator] PDF conversion successful:', fileName);
+
+                    return {
+                        fileName,
+                        filePath,
+                        fileUrl: `/generated/${fileName}`
+                    };
+                } catch (pdfErr) {
+                    console.error('[DocumentGenerator] PDF Conversion Failed:', pdfErr);
+                    throw new Error('PDF generálás sikertelen (LibreOffice hiba). Kérlek ellenőrizd, hogy a LibreOffice telepítve van-e a szerveren.');
+                }
+            }
+
             // Save file
             const fileName = `${targetTemplate}_${data.contract_number || Date.now()}.docx`;
             const filePath = path.join(this.generatedDir, fileName);
             fs.writeFileSync(filePath, buf);
 
+            console.timeEnd('FullGenerationTime'); // END MEASURE
             return {
                 fileName,
                 filePath,
@@ -327,8 +457,21 @@ class DocumentGenerator {
         return `${postalCode || ''} ${city || ''}, ${street || ''} ${houseNumber || ''}`.trim();
     }
 
+    // Helper for checkbox formatting
+    formatCheckboxLine(checked, text) {
+        // U+2611 (☑) and U+25A1 (□)
+        return (checked ? '☑' : '□') + text;
+    }
+
     // Prepare and format data for template
     prepareData(data) {
+        console.log('[DEBUG] prepareData called with:', JSON.stringify({
+            attic_door_insulated: data.attic_door_insulated,
+            padlasfeljaro_szigetelese: data.padlasfeljaro_szigetelese,
+            pf_kivul_egyeb: data.pf_kivul_egyeb,
+            pf_kivul_egyeb_szoveg: data.pf_kivul_egyeb_szoveg
+        }, null, 2));
+
         // Calculate labor cost words
         const laborCostWords = this.numberToHungarianWords(data.labor_cost) + ' forint';
         const netAmountWords = data.net_amount_words || (this.numberToHungarianWords(data.net_amount) + ' forint');
@@ -339,6 +482,10 @@ class DocumentGenerator {
             console.log(`[DocumentGenerator] GJ is ${energySaving}, recalculating from net_area ${data.net_area}`);
             energySaving = parseFloat((parseFloat(data.net_area) * 0.461).toFixed(2));
         }
+
+        // CALCULATE GJ BASED VALUES
+        const szamoltNettoValue = Math.round(energySaving * 9757);
+        const szamoltGrossValue = Math.round(szamoltNettoValue * 1.27);
 
         // DETERMINE CONTRACTOR DATA
         let contractor = CONTRACTOR_DATA;
@@ -445,7 +592,11 @@ class DocumentGenerator {
 
             // Financial
             szerzodesi_osszeg: this.formatCurrency(data.net_amount),
+            // NEW CALCULATIONS
+            szamoltnetto: this.formatCurrency(szamoltNettoValue),
+            szamoltnettoszövegesen: this.numberToHungarianWords(szamoltNettoValue) + ' forint',
             szamoltosszeg: this.formatCurrency(data.net_amount),
+
             szerzodesi_osszeg_betuvel: netAmountWords,
             szamoltosszegbetuvel: netAmountWords,
             munkadij: this.formatCurrency(data.labor_cost),
@@ -453,7 +604,7 @@ class DocumentGenerator {
             munkadij_betuvel: laborCostWords, // Added alias to be safe
             megtakaritas: energySaving,
             gj: energySaving,
-            brszamoltertek: this.formatCurrency(data.net_amount), // Added for HEM doc
+            brszamoltertek: this.formatCurrency(szamoltGrossValue), // Updated to use calculated gross value
             hem: this.formatCurrency(data.hem_value),
             tamogatas: this.formatCurrency(data.government_support),
 
@@ -483,23 +634,81 @@ class DocumentGenerator {
             szerzodesszama: data.contract_number || '',
             ev: new Date().getFullYear(),
             contract_date: this.formatDate(data.contract_date || new Date()),
+            contract_date: this.formatDate(data.contract_date || new Date()),
             location: data.location || 'Sződliget',
         };
+
+        // --- ATTIC DECLARATION VARIABLES (Padlásfeljáró) ---
+        const boxChecked = '☑';
+        const boxUnchecked = '□';
+
+        // 1. padlasfeljaro_szigetelese (IGEN/NEM) -> Splitted into _igen and _nem tags based on log
+        const isAtticInsulated = data.attic_door_insulated === true || data.padlasfeljaro_szigetelese === 'IGEN' || data.padlasfeljaro_szigetelese === true;
+
+        if (isAtticInsulated) {
+            result.padlasfeljaro_szigetelese_igen = boxChecked;
+            result.padlasfeljaro_szigetelese_nem = boxUnchecked;
+            // Legacy/Fallback
+            result.padlasfeljaro_szigetelese = '☑IGEN             □NEM';
+        } else {
+            result.padlasfeljaro_szigetelese_igen = boxUnchecked;
+            result.padlasfeljaro_szigetelese_nem = boxChecked;
+            // Legacy/Fallback
+            result.padlasfeljaro_szigetelese = '□IGEN             ☑NEM';
+        }
+
+        // 2. pf_kivul_* variables
+        result.pf_kivul_fodemen = data.pf_kivul_fodemen ? boxChecked : boxUnchecked;
+        result.pf_kivul_oromfal = data.pf_kivul_oromfal ? boxChecked : boxUnchecked;
+        result.pf_kivul_bonthato = data.pf_kivul_bonthato ? boxChecked : boxUnchecked;
+
+        // 3. pf_kivul_egyeb
+        // Log shows both pf_kivul_egyeb AND pf_kivul_egyeb_szoveg tags exist
+        // So we populate them separately to avoid duplication
+        result.pf_kivul_egyeb = data.pf_kivul_egyeb ? boxChecked : boxUnchecked;
+        result.pf_kivul_egyeb_szoveg = data.pf_kivul_egyeb_szoveg || '';
+
+        // ALIASING: Map the IGEN/NEM string to other potential keys to catch template mismatch
+        result.attic_door_insulated = result.padlasfeljaro_szigetelese;
+        result.padlasfeljaro_hoszigetelese = result.padlasfeljaro_szigetelese; // Another potential hungarian name
+
+        console.log('[DEBUG] Final keys passed to template:', Object.keys(result).filter(k => k.includes('padlas') || k.includes('attic') || k.includes('pf_')));
 
         // CRITICAL FIX: Only add base64 image fields if they have actual data
         // This prevents empty strings or undefined from appearing as garbage text
         const customerSig = this.cleanValue(data.customer_signature_data);
         if (customerSig) {
             result.alairasugyfel = customerSig;
+            // Map generic 'alairas' tag to customer signature as well (for Tamogatas doc)
+            result.alairas = customerSig;
+        } else {
+            result.alairasugyfel = '';
+            // Ensure it's not undefined
+            result.alairas = '';
         }
 
         const contractorSig = this.cleanValue(data.contractor_signature_data);
         if (contractorSig) {
             result.alairaskivitelezo = contractorSig;
         } else {
-            // CRITICAL: Provide empty 1x1 transparent PNG if no contractor signature
-            // This prevents the tag from appearing as text in the document
             result.alairaskivitelezo = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+        }
+
+        // Bélyegző betöltése (Stamp logic)
+        try {
+            const stampPath = path.join(__dirname, '../assets/kivitelezo_belyegzo.jpg');
+            if (fs.existsSync(stampPath)) {
+                // Read as base64
+                const stampBuffer = fs.readFileSync(stampPath);
+                result.belyegzo = stampBuffer; // Docxtemplater can handle Buffer directly
+                console.log('[DocumentGenerator] Stamp loaded successfully');
+            } else {
+                console.warn('[DocumentGenerator] Stamp file not found:', stampPath);
+                result.belyegzo = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+            }
+        } catch (stampErr) {
+            console.error('[DocumentGenerator] Error loading stamp:', stampErr);
+            result.belyegzo = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
         }
 
         // Alaprajz logic preserved if needed for other docs, but signature is gone.

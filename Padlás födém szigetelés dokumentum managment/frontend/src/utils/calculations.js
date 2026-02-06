@@ -1,27 +1,38 @@
+// Helper to safely parse numbers
+const safeParseFloat = (value) => {
+    if (value === undefined || value === null || value === '') return 0;
+    // Handle number type directly
+    if (typeof value === 'number') return value;
+    // Handle string inputs, replacing comma with dot
+    const strVal = String(value).replace(',', '.');
+    const parsed = parseFloat(strVal);
+    return isNaN(parsed) ? 0 : parsed;
+};
+
 // Calculate net area
 export const calculateNetArea = (grossArea, chimneyArea = 0, atticDoorArea = 0, otherDeductedArea = 0) => {
-    const net = parseFloat(grossArea) - parseFloat(chimneyArea) - parseFloat(atticDoorArea) - parseFloat(otherDeductedArea);
+    const net = safeParseFloat(grossArea) - safeParseFloat(chimneyArea) - safeParseFloat(atticDoorArea) - safeParseFloat(otherDeductedArea);
     return Math.max(0, net).toFixed(2);
 };
 
 // Calculate energy saving in GJ
 export const calculateEnergySaving = (netArea) => {
-    return (parseFloat(netArea) * 0.461).toFixed(2);
+    return (safeParseFloat(netArea) * 0.461).toFixed(2);
 };
 
 // Calculate contractor fee based on energy saving
 export const calculateContractorFee = (energySavingGJ) => {
-    return Math.round(parseFloat(energySavingGJ) * 11705);
+    return Math.round(safeParseFloat(energySavingGJ) * 12392);
 };
 
 // Calculate VAT
 export const calculateVAT = (netAmount, vatRate = 0.27) => {
-    return Math.round(parseFloat(netAmount) * vatRate);
+    return Math.round(safeParseFloat(netAmount) * vatRate);
 };
 
 // Calculate gross amount
 export const calculateGrossAmount = (netAmount, vat) => {
-    return parseFloat(netAmount) + parseFloat(vat);
+    return safeParseFloat(netAmount) + safeParseFloat(vat);
 };
 
 // Format currency

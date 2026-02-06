@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider } from './context/AppContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -8,12 +8,14 @@ import Home from './pages/Home';
 import NewProject from './pages/NewProject';
 import ProjectList from './pages/ProjectList';
 import ProjectDetails from './pages/ProjectDetails';
+import EditProject from './pages/EditProject';
 import AdminDashboard from './pages/AdminDashboard';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import InviteUser from './pages/InviteUser';
 import AcceptInvite from './pages/AcceptInvite';
 import EmailSettings from './pages/EmailSettings';
+import RemoteSign from './pages/RemoteSign';
 
 // Layout
 import MainLayout from './components/Layout/MainLayout';
@@ -28,6 +30,17 @@ const PrivateRoute = ({ children }) => {
 };
 
 function App() {
+    // Add PWA update listener
+    useEffect(() => {
+        let refreshing = false;
+        navigator.serviceWorker?.addEventListener('controllerchange', () => {
+            if (!refreshing) {
+                refreshing = true;
+                window.location.reload();
+            }
+        });
+    }, []);
+
     return (
         <AuthProvider>
             <AppProvider>
@@ -64,6 +77,13 @@ function App() {
                                 </MainLayout>
                             </PrivateRoute>
                         } />
+                        <Route path="/projects/:id/edit" element={
+                            <PrivateRoute>
+                                <MainLayout>
+                                    <EditProject />
+                                </MainLayout>
+                            </PrivateRoute>
+                        } />
                         <Route path="/admin" element={
                             <PrivateRoute>
                                 <MainLayout>
@@ -86,6 +106,7 @@ function App() {
                             </PrivateRoute>
                         } />
                         <Route path="/accept-invite" element={<AcceptInvite />} />
+                        <Route path="/sign/:token" element={<RemoteSign />} />
                     </Routes>
                 </Router>
             </AppProvider>

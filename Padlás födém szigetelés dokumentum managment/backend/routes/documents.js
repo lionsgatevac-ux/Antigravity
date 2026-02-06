@@ -6,10 +6,10 @@ const Project = require('../models/Project');
 // POST generate document
 router.post('/generate', async (req, res, next) => {
     try {
-        const { projectId, documentType } = req.body;
+        const { projectId, documentType, format } = req.body;
 
         // Validate document type
-        const validTypes = ['kivitelezesi_szerzodes', 'atadas_atveteli', 'kivitelezoi_nyilatkozat', 'megallapodas_hem'];
+        const validTypes = ['kivitelezesi_szerzodes', 'atadas_atveteli', 'kivitelezoi_nyilatkozat', 'megallapodas_hem', 'tamogatas_igenylo'];
         if (!validTypes.includes(documentType)) {
             return res.status(400).json({
                 success: false,
@@ -29,51 +29,62 @@ router.post('/generate', async (req, res, next) => {
         // Get Floor Plan (latest)
         const { query } = require('../config/database');
         const floorPlanResult = await query(
-            "SELECT file_path FROM photos WHERE project_id = $1 AND photo_type = 'floor_plan' ORDER BY taken_at DESC LIMIT 1",
+            "SELECT file_path, file_url FROM photos WHERE project_id = $1 AND photo_type = 'floor_plan' ORDER BY taken_at DESC LIMIT 1",
             [projectId]
         );
 
         let floorPlanBase64 = '';
         if (floorPlanResult.rows.length > 0) {
-            try {
-                const fs = require('fs');
-                const path = require('path');
-                let fpPath = floorPlanResult.rows[0].file_path;
-                console.log(`[DEBUG] Found floor plan record. ID: ${projectId}, Path: ${fpPath}`);
+            const floorPlanRecord = floorPlanResult.rows[0];
 
-                let fileBuffer = null;
+            // PRIORITY 1: Check if we have a Supabase URL (file_url)
+            if (floorPlanRecord.file_url) {
+                console.log(`[DEBUG] Floor plan is in Supabase Storage: ${floorPlanRecord.file_url}`);
+                // Pass the URL directly - documentGenerator will download it
+                floorPlanBase64 = floorPlanRecord.file_url;
+            }
+            // PRIORITY 2: Try local file_path
+            else if (floorPlanRecord.file_path) {
+                try {
+                    const fs = require('fs');
+                    const path = require('path');
+                    let fpPath = floorPlanRecord.file_path;
+                    console.log(`[DEBUG] Found floor plan record. ID: ${projectId}, Path: ${fpPath}`);
 
-                // 1. Try exact path from DB
-                if (fs.existsSync(fpPath)) {
-                    console.log(`[DEBUG] Document generation: Floor plan found at exact path: ${fpPath}`);
-                    fileBuffer = fs.readFileSync(fpPath);
-                }
-                // 2. Try absolute path resolution
-                else {
-                    const absPath = path.resolve(process.cwd(), fpPath);
-                    if (fs.existsSync(absPath)) {
-                        console.log(`[DEBUG] Document generation: Floor plan found at resolved absolute path: ${absPath}`);
-                        fileBuffer = fs.readFileSync(absPath);
+                    let fileBuffer = null;
+
+                    // 1. Try exact path from DB
+                    if (fs.existsSync(fpPath)) {
+                        console.log(`[DEBUG] Document generation: Floor plan found at exact path: ${fpPath}`);
+                        fileBuffer = fs.readFileSync(fpPath);
                     }
-                    // 3. Try finding it in the uploads folder by filename only
+                    // 2. Try absolute path resolution
                     else {
-                        const filename = path.basename(fpPath);
-                        const fallbackPath = path.join(__dirname, '..', 'uploads', 'floor_plan', filename);
-                        if (fs.existsSync(fallbackPath)) {
-                            console.log(`[DEBUG] Document generation: Floor plan found at fallback path: ${fallbackPath}`);
-                            fileBuffer = fs.readFileSync(fallbackPath);
-                        } else {
-                            console.error(`[ERROR] Floor plan NOT found. Tried: ${fpPath}, ${absPath}, ${fallbackPath}`);
+                        const absPath = path.resolve(process.cwd(), fpPath);
+                        if (fs.existsSync(absPath)) {
+                            console.log(`[DEBUG] Document generation: Floor plan found at resolved absolute path: ${absPath}`);
+                            fileBuffer = fs.readFileSync(absPath);
+                        }
+                        // 3. Try finding it in the uploads folder by filename only
+                        else {
+                            const filename = path.basename(fpPath);
+                            const fallbackPath = path.join(__dirname, '..', 'uploads', 'floor_plan', filename);
+                            if (fs.existsSync(fallbackPath)) {
+                                console.log(`[DEBUG] Document generation: Floor plan found at fallback path: ${fallbackPath}`);
+                                fileBuffer = fs.readFileSync(fallbackPath);
+                            } else {
+                                console.error(`[ERROR] Floor plan NOT found. Tried: ${fpPath}, ${absPath}, ${fallbackPath}`);
+                            }
                         }
                     }
-                }
 
-                if (fileBuffer) {
-                    floorPlanBase64 = 'data:image/png;base64,' + fileBuffer.toString('base64');
-                    console.log('✅ Floor plan loaded successfully for document.');
+                    if (fileBuffer) {
+                        floorPlanBase64 = 'data:image/png;base64,' + fileBuffer.toString('base64');
+                        console.log('✅ Floor plan loaded successfully for document.');
+                    }
+                } catch (err) {
+                    console.error('Failed to load floor plan image:', err);
                 }
-            } catch (err) {
-                console.error('Failed to load floor plan image:', err);
             }
         }
 
@@ -102,6 +113,7 @@ router.post('/generate', async (req, res, next) => {
             hrsz: projectData.hrsz,
             building_year: projectData.building_year,
             building_type: projectData.building_type,
+            futes: projectData.heating_type,
             structure_type: projectData.structure_type,
             structure_thickness: projectData.structure_thickness,
             unheated_space_type: projectData.unheated_space_type,
@@ -125,6 +137,11 @@ router.post('/generate', async (req, res, next) => {
             government_support: projectData.government_support,
 
             attic_door_insulated: projectData.attic_door_insulated,
+            pf_kivul_fodemen: projectData.pf_kivul_fodemen,
+            pf_kivul_oromfal: projectData.pf_kivul_oromfal,
+            pf_kivul_bonthato: projectData.pf_kivul_bonthato,
+            pf_kivul_egyeb: projectData.pf_kivul_egyeb,
+            pf_kivul_egyeb_szoveg: projectData.pf_kivul_egyeb_szoveg,
 
             // Materials
             insulation_type: projectData.insulation_type,
@@ -136,7 +153,10 @@ router.post('/generate', async (req, res, next) => {
             contractor_signature_data: projectData.contractor_signature_data,
 
             // Floor Plan
-            alaprajz: floorPlanBase64
+            alaprajz: floorPlanBase64,
+
+            // Meta
+            created_at: projectData.created_at
         };
 
         // DEBUG: Log template data
@@ -147,8 +167,14 @@ router.post('/generate', async (req, res, next) => {
         console.log('   unheated_space_area:', templateData.unheated_space_area);
         console.log('   unheated_space_name:', templateData.unheated_space_name);
 
+        // Map document types to file names (if different)
+        let templateName = documentType;
+        if (documentType === 'atadas_atveteli') {
+            templateName = '2026 atadas_atveteli';
+        }
+
         // Generate document
-        const result = await documentGenerator.generate(documentType, templateData);
+        const result = await documentGenerator.generate(templateName, templateData, format);
 
         // Save document record to database
 

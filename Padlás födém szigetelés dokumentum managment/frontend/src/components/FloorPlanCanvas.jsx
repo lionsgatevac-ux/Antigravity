@@ -27,6 +27,7 @@ export default function FloorPlanner({ projectId, onSaveSuccess }) {
 
     // Initial load handler to set canvas size
     useEffect(() => {
+        console.log('🎨 FloorPlanCanvas Loaded - VERSION: DEBUG-005');
         const handleResize = () => {
             if (containerRef.current && canvasRef.current) {
                 const containerWidth = containerRef.current.offsetWidth;
@@ -367,7 +368,15 @@ export default function FloorPlanner({ projectId, onSaveSuccess }) {
                     if (onSaveSuccess) onSaveSuccess();
                 } catch (error) {
                     console.error('Error uploading floor plan:', error);
-                    showToast('Hiba a mentés során', 'error');
+                    // Extract detailed error
+                    let errorMessage = 'Ismeretlen hiba történt';
+                    if (error.response && error.response.data && error.response.data.error) {
+                        errorMessage = error.response.data.error;
+                    } else if (error.message) {
+                        errorMessage = error.message;
+                    }
+
+                    showToast(`Hiba a mentés során: ${errorMessage}`, 'error');
                 } finally {
                     setIsSaving(false);
                 }

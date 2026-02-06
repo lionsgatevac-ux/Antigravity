@@ -125,7 +125,7 @@ router.post('/login', async (req, res) => {
         // Generate Token with org_id
         const token = generateToken(user);
         delete user.password_hash;
-        console.log(`[LOGIN SUCCESS] User: ${user.id}`);
+        console.log('[Login] Successful for user:', user.email, 'ID:', user.id);
 
         res.json({
             success: true,

@@ -1,0 +1,8 @@
+Deploying container to Cloud Run service [padlas-fodem-szigeteles] in project [padlas-fodem-szigeteles] region [europe-west1]
+Deploying...
+Setting IAM Policy...............done
+Creating Revision.....................................................................................................................................................done
+Routing traffic.....done
+Done.
+Service [padlas-fodem-szigeteles] revision [padlas-fodem-szigeteles-00050-xq8] has been deployed and is serving 100 percent of traffic.
+Service URL: https://padlas-fodem-szigeteles-673616702762.europe-west1.run.app

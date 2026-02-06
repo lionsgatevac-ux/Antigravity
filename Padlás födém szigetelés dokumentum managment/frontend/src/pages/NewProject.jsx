@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle, PenTool, Plus } from 'lucide-react';
-import { projectsAPI } from '../services/api';
+import { projectsAPI, materialsAPI } from '../services/api';
 import { useApp } from '../context/AppContext';
 import { calculateNetArea, calculateEnergySaving, calculateContractorFee, formatCurrency } from '../utils/calculations';
 import { validateForm, required, email, phone, positiveNumber } from '../utils/validation';
@@ -37,7 +37,8 @@ const NewProject = () => {
             structure_thickness: '',
             unheated_space_type: 'nincs',
             unheated_space_area: '',
-            unheated_space_name: ''
+            unheated_space_name: '',
+            heating_type: 'gáz készülék'
         },
         details: {
             gross_area: '',
@@ -52,7 +53,19 @@ const NewProject = () => {
             government_support: '0',
             insulation_type: 'Thermowool Basic üveggyapot tekercs (0.039)',
             vapor_barrier_type: '',
-            breathable_membrane_type: ''
+            breathable_membrane_type: '',
+            // Attic Declaration Init
+            padlasfeljaro_szigetelese: 'NEM', // Default to NEM for 'attic_door_insulated' existing logic but matching UI
+            // Note: DB column is 'attic_door_insulated'. We can map it or use it directly.
+            // Let's stick to existing DB column 'attic_door_insulated' which is boolean. 
+            // In UI 'IGEN'/'NEM' maps to true/false.
+            attic_door_insulated: false, // Default false (NEM)
+            // New fields
+            pf_kivul_fodemen: false,
+            pf_kivul_oromfal: false,
+            pf_kivul_bonthato: false,
+            pf_kivul_egyeb: false,
+            pf_kivul_egyeb_szoveg: ''
         }
     });
 
@@ -67,6 +80,22 @@ const NewProject = () => {
     const [isAddressSame, setIsAddressSame] = useState(formData.property.address_city === '' ||
         (formData.customer.address_city === formData.property.address_city &&
             formData.customer.address_street === formData.property.address_street));
+
+    // Fetch materials from API on component mount
+    useEffect(() => {
+        const fetchMaterials = async () => {
+            try {
+                const response = await materialsAPI.getAll();
+                if (response.success && response.data) {
+                    setMaterialOptions(response.data);
+                }
+            } catch (error) {
+                console.error('Failed to fetch materials:', error);
+                showToast('Nem sikerült betölteni az anyagokat', 'error');
+            }
+        };
+        fetchMaterials();
+    }, []);
 
     const handleInputChange = (section, field, value) => {
         setFormData(prev => {
@@ -187,21 +216,42 @@ const NewProject = () => {
         }
     };
 
-    const addNewMaterialOption = (category) => {
+    const addNewMaterialOption = async (category) => {
         const newValue = window.prompt(`Új ${category === 'insulation' ? 'szigetelőanyag' : 'fólia'} típus hozzáadása:`);
         if (newValue && newValue.trim()) {
-            setMaterialOptions(prev => ({
-                ...prev,
-                [category]: [...prev[category], newValue.trim()]
-            }));
+            try {
+                // Save to database
+                const response = await materialsAPI.create({
+                    category: category,
+                    name: newValue.trim()
+                });
 
-            // Auto-select the new value
-            const fieldMap = {
-                insulation: 'insulation_type',
-                vapor_barrier: 'vapor_barrier_type',
-                breathable_membrane: 'breathable_membrane_type'
-            };
-            handleInputChange('details', fieldMap[category], newValue.trim());
+                if (response.success) {
+                    // Update local state
+                    setMaterialOptions(prev => ({
+                        ...prev,
+                        [category]: [...prev[category], newValue.trim()]
+                    }));
+
+                    // Auto-select the new value
+                    const fieldMap = {
+                        insulation: 'insulation_type',
+                        vapor_barrier: 'vapor_barrier_type',
+                        breathable_membrane: 'breathable_membrane_type'
+                    };
+                    handleInputChange('details', fieldMap[category], newValue.trim());
+                    showToast('Anyag sikeresen hozzáadva!', 'success');
+                } else {
+                    showToast('Hiba az anyag mentésekor', 'error');
+                }
+            } catch (error) {
+                console.error('Failed to save material:', error);
+                if (error.message.includes('already exists')) {
+                    showToast('Ez az anyag már létezik', 'warning');
+                } else {
+                    showToast('Hiba az anyag mentésekor', 'error');
+                }
+            }
         }
     };
 
@@ -298,7 +348,8 @@ const NewProject = () => {
                 showToast('Hiba: Nem sikerült a projekt azonosítóját lekérni', 'error');
             }
         } catch (error) {
-            showToast('Hiba a mentés során', 'error');
+            const errorMessage = error.response?.data?.error || error.message || 'Hiba a mentés során';
+            showToast(errorMessage, 'error');
             console.error(error);
         } finally {
             setLoading(false);
@@ -475,6 +526,7 @@ const NewProject = () => {
                                     onChange={(e) => handleInputChange('customer', 'address_city', e.target.value)}
                                 />
                             </div>
+
                         </div>
 
                         <div className="form-row">
@@ -604,6 +656,19 @@ const NewProject = () => {
                             )}
                         </div>
 
+                        <div className="form-group">
+                            <label className="form-label">Az épület fűtésének típusa</label>
+                            <select value={formData.property.heating_type} onChange={(e) => handleInputChange('property', 'heating_type', e.target.value)}>
+                                <option value="gáz készülék">Gáz készülék</option>
+                                <option value="vegyes tüzelés">Vegyes tüzelés</option>
+                                <option value="fa fűtés">Fa fűtés</option>
+                                <option value="elektromos fűtés">Elektromos fűtés</option>
+                                <option value="klíma">Klíma</option>
+                                <option value="hőszivattyú">Hőszivattyú</option>
+                                <option value="egyéb">Egyéb</option>
+                            </select>
+                        </div>
+
                         <div className="form-group" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                             <input
                                 type="checkbox"
@@ -722,6 +787,92 @@ const NewProject = () => {
                             </div>
                         </div>
 
+                        {/* --- NEW SECTION: Padlásfeljáró elhelyezkedése --- */}
+                        <div className="section-divider" style={{ margin: '2rem 0', borderTop: '1px solid #e5e7eb' }}></div>
+                        <h3>Padlásfeljáró elhelyezkedése</h3>
+
+                        <div className="form-row">
+                            <div className="form-group" style={{ flex: 1 }}>
+                                <label className="form-label">Hőszigetelt területen belül</label>
+                                <div style={{ marginBottom: '0.5rem', fontSize: '0.9rem', color: '#4b5563' }}>
+                                    Padlásfeljáró hőszigetelése megtörtént a fenti műszaki tartalommal?
+                                </div>
+                                <div className="attic-radio-group">
+                                    <label className="attic-radio-label">
+                                        <input
+                                            type="radio"
+                                            name="attic_door_insulated"
+                                            checked={formData.details.attic_door_insulated === true}
+                                            onChange={() => handleInputChange('details', 'attic_door_insulated', true)}
+                                        />
+                                        IGEN
+                                    </label>
+                                    <label className="attic-radio-label">
+                                        <input
+                                            type="radio"
+                                            name="attic_door_insulated"
+                                            checked={formData.details.attic_door_insulated === false}
+                                            onChange={() => handleInputChange('details', 'attic_door_insulated', false)}
+                                        />
+                                        NEM
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div className="form-group" style={{ flex: 2 }}>
+                                <label className="form-label">Hőszigetelt területen kívül</label>
+                                <div className="attic-checkbox-group">
+
+                                    <label className="attic-checkbox-label">
+                                        <input
+                                            type="checkbox"
+                                            checked={formData.details.pf_kivul_fodemen}
+                                            onChange={(e) => handleInputChange('details', 'pf_kivul_fodemen', e.target.checked)}
+                                        />
+                                        <span>hőszigeteletlen födémen</span>
+                                    </label>
+
+                                    <label className="attic-checkbox-label">
+                                        <input
+                                            type="checkbox"
+                                            checked={formData.details.pf_kivul_oromfal}
+                                            onChange={(e) => handleInputChange('details', 'pf_kivul_oromfal', e.target.checked)}
+                                        />
+                                        <span>oromfal</span>
+                                    </label>
+
+                                    <label className="attic-checkbox-label">
+                                        <input
+                                            type="checkbox"
+                                            checked={formData.details.pf_kivul_bonthato}
+                                            onChange={(e) => handleInputChange('details', 'pf_kivul_bonthato', e.target.checked)}
+                                        />
+                                        <span>bontható tető</span>
+                                    </label>
+
+                                    <div className="attic-other-row">
+                                        <label className="attic-checkbox-label" style={{ width: 'auto' }}>
+                                            <input
+                                                type="checkbox"
+                                                checked={formData.details.pf_kivul_egyeb}
+                                                onChange={(e) => handleInputChange('details', 'pf_kivul_egyeb', e.target.checked)}
+                                            />
+                                            <span>egyéb:</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            className="attic-other-input"
+                                            value={formData.details.pf_kivul_egyeb_szoveg}
+                                            onChange={(e) => handleInputChange('details', 'pf_kivul_egyeb_szoveg', e.target.value)}
+                                            disabled={!formData.details.pf_kivul_egyeb}
+                                            placeholder="..."
+                                        />
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+
                         <h3>Felhasznált anyagok típusa:</h3>
 
                         <div className="material-selection-row">
@@ -795,7 +946,7 @@ const NewProject = () => {
                                 {formatCurrency(calculateContractorFee(calculateEnergySaving(formData.details.net_area)))}
                             </div>
                             <small style={{ color: 'var(--text-secondary)', marginTop: '0.5rem', display: 'block' }}>
-                                {calculateEnergySaving(formData.details.net_area)} GJ × 11,705 Ft/GJ
+                                {calculateEnergySaving(formData.details.net_area)} GJ × 12,392 Ft/GJ
                             </small>
                         </div>
 

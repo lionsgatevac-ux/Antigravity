@@ -1,0 +1,49 @@
+﻿2026-01-29 17:35:51   rows: 1
+2026-01-29 17:35:51 }
+2026-01-29 17:35:51 [0mGET /api/projects/6607d426-3db2-4b94-b5e6-a11057ffcdf6 [32m200[0m 163.932 ms - 45849[0m
+2026-01-29 17:35:51 GET 304 https://padlas-fodem-szigeteles-wccgabnluq-ew.a.run.app/api/uploads/photos/6607d426-3db2-4b94-b5e6-a11057ffcdf6
+2026-01-29 17:35:51 Executed query {
+2026-01-29 17:35:51   text: 'SELECT * FROM photos WHERE project_id = $1 ORDER BY taken_at DESC',
+2026-01-29 17:35:51   duration: 11,
+2026-01-29 17:35:51   rows: 0
+2026-01-29 17:35:51 }
+2026-01-29 17:35:51 [0mGET /api/uploads/photos/6607d426-3db2-4b94-b5e6-a11057ffcdf6 [36m304[0m 12.448 ms - -[0m
+2026-01-29 17:35:52 GET 200 https://padlas-fodem-szigeteles-wccgabnluq-ew.a.run.app/sw.js
+2026-01-29 17:35:52 [0mGET /sw.js [32m200[0m 0.783 ms - 1578[0m
+2026-01-29 17:35:52 GET 304 https://padlas-fodem-szigeteles-wccgabnluq-ew.a.run.app/workbox-42774e1b.js
+2026-01-29 17:35:52 [0mGET /workbox-42774e1b.js [36m304[0m 0.440 ms - -[0m
+2026-01-29 17:36:29 GET 200 https://padlas-fodem-szigeteles-wccgabnluq-ew.a.run.app/api/projects
+2026-01-29 17:36:29 GET 304 https://padlas-fodem-szigeteles-wccgabnluq-ew.a.run.app/vite.svg
+2026-01-29 17:36:29 [0mGET /vite.svg [36m304[0m 0.605 ms - -[0m
+2026-01-29 17:36:30 ? Database connected successfully!
+2026-01-29 17:36:30 Executed query {
+2026-01-29 17:36:30   text: 'SELECT id, email, role, organization_id FROM users WHERE id = $1',
+2026-01-29 17:36:30   duration: 114,
+2026-01-29 17:36:30   rows: 1
+2026-01-29 17:36:30 }
+2026-01-29 17:36:30 Executed query {
+2026-01-29 17:36:30   text: 'SELECT p.*, \n' +
+2026-01-29 17:36:30     '                   c.full_name as customer_name, c.email as customer_email, c.phone as customer_phone,\n' +
+2026-01-29 17:36:30     '                   c.address_postal_code as customer_postal_code, c.address_city as customer_city, \n' +
+2026-01-29 17:36:30     '                   c.address_street as customer_street, c.address_house_number as customer_house_number,\n' +
+2026-01-29 17:36:30     '                   pd.net_area, pd.energy_saving_gj, \n' +
+2026-01-29 17:36:30     '                   pr.address_city as property_city,\n' +
+2026-01-29 17:36:30     '                   u.company_name as owner_company,\n' +
+2026-01-29 17:36:30     "                   EXISTS(SELECT 1 FROM photos WHERE project_id = p.id AND photo_type = 'floor_plan') as has_floor_plan\n" +
+2026-01-29 17:36:30     '                   FROM projects p \n' +
+2026-01-29 17:36:30     '                   LEFT JOIN project_details pd ON p.id = pd.project_id \n' +
+2026-01-29 17:36:30     '                   LEFT JOIN customers c ON pd.customer_id = c.id\n' +
+2026-01-29 17:36:30     '                   LEFT JOIN properties pr ON pd.property_id = pr.id\n' +
+2026-01-29 17:36:30     '                   LEFT JOIN users u ON p.created_by = u.id WHERE p.organization_id = $1 ORDER BY p.created_at DESC',
+2026-01-29 17:36:30   duration: 70,
+2026-01-29 17:36:30   rows: 17
+2026-01-29 17:36:30 }
+2026-01-29 17:36:30 [0mGET /api/projects [32m200[0m 197.172 ms - 652325[0m
+2026-01-29 17:36:34 DELETE 200 https://padlas-fodem-szigeteles-wccgabnluq-ew.a.run.app/api/projects/6607d426-3db2-4b94-b5e6-a11057ffcdf6
+2026-01-29 17:36:34 Executed query {
+2026-01-29 17:36:34   text: 'SELECT id, email, role, organization_id FROM users WHERE id = $1',
+2026-01-29 17:36:34   duration: 13,
+2026-01-29 17:36:34   rows: 1
+2026-01-29 17:36:34 }
+2026-01-29 17:36:34 Executed query { text: 'DELETE FROM projects WHERE id = $1', duration: 14, rows: 1 }
+2026-01-29 17:36:34 [0mDELETE /api/projects/6607d426-3db2-4b94-b5e6-a11057ffcdf6 [32m200[0m 30.585 ms - 44[0m

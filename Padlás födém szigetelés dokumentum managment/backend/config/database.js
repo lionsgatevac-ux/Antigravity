@@ -20,10 +20,16 @@ const getConnectionString = () => {
 const getConfig = () => {
     // Detect production: NODE_ENV or Google Cloud Run service name
     const isProduction = process.env.NODE_ENV === 'production' || process.env.K_SERVICE !== undefined;
-    const prodUrl = 'postgresql://postgres:Bizniszmatek@db.pkjohziwbiiyzyospuot.supabase.co:5432/postgres';
+
+    // NUCLEAR OPTION: Hardcoded, Pre-Encoded URL
+    // Biznisz%20matek is correctly encoded.
+    // Host: aws-1-eu-central-1.pooler.supabase.com
+    // Port: 6543
+    const prodUrl = 'postgresql://postgres.pkjohziwbiiyzyospuot:Biznisz%20matek@aws-1-eu-central-1.pooler.supabase.com:6543/postgres';
 
     if (isProduction) {
-        console.log('🌐 Config: Using Hardcoded Production Supabase configuration.');
+        console.log('globe Config: Forcing Hardcoded Production URL.');
+        // Bypass env var check completely for production to guarantee correct credentials
         return {
             connectionString: prodUrl,
             ssl: { rejectUnauthorized: false },
@@ -33,7 +39,32 @@ const getConfig = () => {
         };
     }
 
-    console.log('🔧 Config: Using local development configuration.');
+    // 1. If DATABASE_URL is provided (e.g. from Docker or Env) and NOT successfully handled by production check above
+    if (process.env.DATABASE_URL) {
+        console.log('wrench Config: Using provided DATABASE_URL environment variable.');
+        let url = process.env.DATABASE_URL;
+
+        // Fix database name override compatibility
+        if (url.includes('padlas_szigeteles') || url.includes('postgres?')) {
+            url = url.replace(/padlas_szigeteles|postgres(?=\?|$)/, 'bozso_db');
+        }
+
+        const config = {
+            connectionString: url,
+            max: 20,
+            idleTimeoutMillis: 30000,
+            connectionTimeoutMillis: 5000,
+        };
+
+        if (url.includes('localhost') || url.includes('127.0.0.1')) {
+            console.log('wrench Config: SSL disabled for local connection.');
+        } else {
+            config.ssl = { rejectUnauthorized: false };
+        }
+        return config;
+    }
+
+    console.log('wrench Config: Using local development configuration (Fallback).');
     return {
         user: 'postgres',
         host: 'localhost',
@@ -46,7 +77,9 @@ const getConfig = () => {
     };
 };
 
-const pool = new Pool(getConfig());
+const config = getConfig();
+console.log('DEBUG: DB Config:', { ...config, password: config.password ? '***' : 'missing' });
+const pool = new Pool(config);
 
 // Test connection
 pool.on('connect', () => {

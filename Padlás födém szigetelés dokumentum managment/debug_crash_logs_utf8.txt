@@ -1,0 +1,125 @@
+﻿2026-01-29 17:11:44     at uploadFile (/app/backend/services/supabaseStorage.js:29:15)
+2026-01-29 17:11:44     at /app/backend/routes/uploads.js:30:31
+2026-01-29 17:11:44     at Layer.handle [as handle_request] (/app/backend/node_modules/express/lib/router/layer.js:95:5)
+2026-01-29 17:11:44     at next (/app/backend/node_modules/express/lib/router/route.js:149:13)
+2026-01-29 17:11:44     at done (/app/backend/node_modules/multer/lib/make-middleware.js:47:7)
+2026-01-29 17:11:44     at indicateDone (/app/backend/node_modules/multer/lib/make-middleware.js:51:68)
+2026-01-29 17:11:44     at Multipart.<anonymous> (/app/backend/node_modules/multer/lib/make-middleware.js:168:7)
+2026-01-29 17:11:44     at Multipart.emit (node:events:517:28)
+2026-01-29 17:11:44     at emitCloseNT (node:internal/streams/destroy:132:10)
+2026-01-29 17:11:44     at process.processTicksAndRejections (node:internal/process/task_queues:81:21)
+2026-01-29 17:11:44 [0mPOST /api/uploads/photo [31m500[0m 4.822 ms - 75[0m
+2026-01-29 17:11:45 Error: Error: Supabase Storage is not configured.
+    at uploadFile (/app/backend/services/supabaseStorage.js:29:15)
+    at /app/backend/routes/uploads.js:30:31
+    at Layer.handle [as handle_request] (/app/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/app/backend/node_modules/express/lib/router/route.js:149:13)
+    at done (/app/backend/node_modules/multer/lib/make-middleware.js:47:7)
+    at indicateDone (/app/backend/node_modules/multer/lib/make-middleware.js:51:68)
+    at Multipart.<anonymous> (/app/backend/node_modules/multer/lib/make-middleware.js:168:7)
+    at Multipart.emit (node:events:517:28)
+    at emitCloseNT (node:internal/streams/destroy:132:10)
+    at process.processTicksAndRejections (node:internal/process/task_queues:81:21)
+2026-01-29 17:21:39 POST 500 https://padlas-fodem-szigeteles-wccgabnluq-ew.a.run.app/api/uploads/photo
+2026-01-29 17:21:39 Uploading file to Supabase: floor_plan/6607d426-3db2-4b94-b5e6-a11057ffcdf6/photo-1769707299562-705922.png
+2026-01-29 17:21:39 Supabase upload failed: Error: Supabase Storage is not configured.
+2026-01-29 17:21:39     at uploadFile (/app/backend/services/supabaseStorage.js:29:15)
+2026-01-29 17:21:39     at /app/backend/routes/uploads.js:30:31
+2026-01-29 17:21:39     at Layer.handle [as handle_request] (/app/backend/node_modules/express/lib/router/layer.js:95:5)
+2026-01-29 17:21:39     at next (/app/backend/node_modules/express/lib/router/route.js:149:13)
+2026-01-29 17:21:39     at done (/app/backend/node_modules/multer/lib/make-middleware.js:47:7)
+2026-01-29 17:21:39     at indicateDone (/app/backend/node_modules/multer/lib/make-middleware.js:51:68)
+2026-01-29 17:21:39     at Multipart.<anonymous> (/app/backend/node_modules/multer/lib/make-middleware.js:168:7)
+2026-01-29 17:21:39     at Multipart.emit (node:events:517:28)
+2026-01-29 17:21:39     at emitCloseNT (node:internal/streams/destroy:132:10)
+2026-01-29 17:21:39     at process.processTicksAndRejections (node:internal/process/task_queues:81:21)
+2026-01-29 17:21:39 [0mPOST /api/uploads/photo [31m500[0m 3.241 ms - 75[0m
+2026-01-29 17:21:40 Error: Error: Supabase Storage is not configured.
+    at uploadFile (/app/backend/services/supabaseStorage.js:29:15)
+    at /app/backend/routes/uploads.js:30:31
+    at Layer.handle [as handle_request] (/app/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/app/backend/node_modules/express/lib/router/route.js:149:13)
+    at done (/app/backend/node_modules/multer/lib/make-middleware.js:47:7)
+    at indicateDone (/app/backend/node_modules/multer/lib/make-middleware.js:51:68)
+    at Multipart.<anonymous> (/app/backend/node_modules/multer/lib/make-middleware.js:168:7)
+    at Multipart.emit (node:events:517:28)
+    at emitCloseNT (node:internal/streams/destroy:132:10)
+    at process.processTicksAndRejections (node:internal/process/task_queues:81:21)
+2026-01-29 17:21:43 GET 304 https://padlas-fodem-szigeteles-wccgabnluq-ew.a.run.app/api/projects/6607d426-3db2-4b94-b5e6-a11057ffcdf6
+2026-01-29 17:21:43 GET 304 https://padlas-fodem-szigeteles-wccgabnluq-ew.a.run.app/vite.svg
+2026-01-29 17:21:43 [0mGET /vite.svg [36m304[0m 1.133 ms - -[0m
+2026-01-29 17:21:43 ? Database connected successfully!
+2026-01-29 17:21:43 Executed query {
+2026-01-29 17:21:43   text: 'SELECT id, email, role, organization_id FROM users WHERE id = $1',
+2026-01-29 17:21:43   duration: 119,
+2026-01-29 17:21:43   rows: 1
+2026-01-29 17:21:43 }
+2026-01-29 17:21:43 Executed query {
+2026-01-29 17:21:43   text: 'SELECT p.*, \n' +
+2026-01-29 17:21:43     '              pd.*, \n' +
+2026-01-29 17:21:43     '              p.id, \n' +
+2026-01-29 17:21:43     '              c.full_name, c.phone, c.email, \n' +
+2026-01-29 17:21:43     '              c.birth_name, c.mother_name, c.id_number,\n' +
+2026-01-29 17:21:43     '              c.address_postal_code as customer_postal_code,\n' +
+2026-01-29 17:21:43     '              c.address_city as customer_city, c.address_street as customer_street,\n' +
+2026-01-29 17:21:43     '              c.address_house_number as customer_house_number,\n' +
+2026-01-29 17:21:43     '              pr.address_postal_code as property_postal_code, pr.address_city as property_city,\n' +
+2026-01-29 17:21:43     '              pr.address_street as property_street, pr.address_house_number as property_house_number,\n' +
+2026-01-29 17:21:43     '              pr.hrsz, pr.building_year, pr.building_type,\n' +
+2026-01-29 17:21:43     '              pr.structure_type, pr.structure_thickness,\n' +
+2026-01-29 17:21:43     '              pr.unheated_space_type, pr.unheated_space_area, pr.unheated_space_name,\n' +
+2026-01-29 17:21:43     '              p.customer_signature_data, p.contractor_signature_data,\n' +
+2026-01-29 17:21:43     '              p.customer_signed_at, p.contractor_signed_at,\n' +
+2026-01-29 17:21:43     '              u.company_name as owner_company_name,\n' +
+2026-01-29 17:21:43     '              u.company_address as owner_company_address,\n' +
+2026-01-29 17:21:43     '              u.company_tax_number as owner_company_tax_number,\n' +
+2026-01-29 17:21:43     '              u.company_reg_number as owner_company_reg_number,\n' +
+2026-01-29 17:21:43     '              u.full_name as owner_name,\n' +
+2026-01-29 17:21:43     '              u.role as owner_role,\n' +
+2026-01-29 17:21:43     "              (SELECT file_url FROM photos WHERE project_id = p.id AND photo_type = 'floor_plan' ORDER BY taken_at DESC LIMIT 1) as floor_plan_url\n" +
+2026-01-29 17:21:43     '       FROM projects p\n' +
+2026-01-29 17:21:43     '        LEFT JOIN project_details pd ON p.id = pd.project_id\n' +
+2026-01-29 17:21:43     '        LEFT JOIN customers c ON pd.customer_id = c.id\n' +
+2026-01-29 17:21:43     '        LEFT JOIN properties pr ON pd.property_id = pr.id\n' +
+2026-01-29 17:21:43     '        LEFT JOIN users u ON p.created_by = u.id\n' +
+2026-01-29 17:21:43     '        WHERE p.id = $1',
+2026-01-29 17:21:43   duration: 16,
+2026-01-29 17:21:43   rows: 1
+2026-01-29 17:21:43 }
+2026-01-29 17:21:43 [0mGET /api/projects/6607d426-3db2-4b94-b5e6-a11057ffcdf6 [36m304[0m 138.114 ms - -[0m
+2026-01-29 17:21:44 GET 304 https://padlas-fodem-szigeteles-wccgabnluq-ew.a.run.app/api/uploads/photos/6607d426-3db2-4b94-b5e6-a11057ffcdf6
+2026-01-29 17:21:44 Executed query {
+2026-01-29 17:21:44   text: 'SELECT * FROM photos WHERE project_id = $1 ORDER BY taken_at DESC',
+2026-01-29 17:21:44   duration: 12,
+2026-01-29 17:21:44   rows: 0
+2026-01-29 17:21:44 }
+2026-01-29 17:21:44 [0mGET /api/uploads/photos/6607d426-3db2-4b94-b5e6-a11057ffcdf6 [36m304[0m 13.013 ms - -[0m
+2026-01-29 17:21:45 GET 200 https://padlas-fodem-szigeteles-wccgabnluq-ew.a.run.app/sw.js
+2026-01-29 17:21:45 [0mGET /sw.js [32m200[0m 5.481 ms - 1578[0m
+2026-01-29 17:21:45 GET 304 https://padlas-fodem-szigeteles-wccgabnluq-ew.a.run.app/workbox-42774e1b.js
+2026-01-29 17:21:45 [0mGET /workbox-42774e1b.js [36m304[0m 0.912 ms - -[0m
+2026-01-29 17:22:01 POST 500 https://padlas-fodem-szigeteles-wccgabnluq-ew.a.run.app/api/uploads/photo
+2026-01-29 17:22:01 Uploading file to Supabase: floor_plan/6607d426-3db2-4b94-b5e6-a11057ffcdf6/photo-1769707321115-652482.png
+2026-01-29 17:22:01 Supabase upload failed: Error: Supabase Storage is not configured.
+2026-01-29 17:22:01     at uploadFile (/app/backend/services/supabaseStorage.js:29:15)
+2026-01-29 17:22:01     at /app/backend/routes/uploads.js:30:31
+2026-01-29 17:22:01     at Layer.handle [as handle_request] (/app/backend/node_modules/express/lib/router/layer.js:95:5)
+2026-01-29 17:22:01     at next (/app/backend/node_modules/express/lib/router/route.js:149:13)
+2026-01-29 17:22:01     at done (/app/backend/node_modules/multer/lib/make-middleware.js:47:7)
+2026-01-29 17:22:01     at indicateDone (/app/backend/node_modules/multer/lib/make-middleware.js:51:68)
+2026-01-29 17:22:01     at Multipart.<anonymous> (/app/backend/node_modules/multer/lib/make-middleware.js:168:7)
+2026-01-29 17:22:01     at Multipart.emit (node:events:517:28)
+2026-01-29 17:22:01     at emitCloseNT (node:internal/streams/destroy:132:10)
+2026-01-29 17:22:01     at process.processTicksAndRejections (node:internal/process/task_queues:81:21)
+2026-01-29 17:22:01 [0mPOST /api/uploads/photo [31m500[0m 3.856 ms - 75[0m
+2026-01-29 17:22:02 Error: Error: Supabase Storage is not configured.
+    at uploadFile (/app/backend/services/supabaseStorage.js:29:15)
+    at /app/backend/routes/uploads.js:30:31
+    at Layer.handle [as handle_request] (/app/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/app/backend/node_modules/express/lib/router/route.js:149:13)
+    at done (/app/backend/node_modules/multer/lib/make-middleware.js:47:7)
+    at indicateDone (/app/backend/node_modules/multer/lib/make-middleware.js:51:68)
+    at Multipart.<anonymous> (/app/backend/node_modules/multer/lib/make-middleware.js:168:7)
+    at Multipart.emit (node:events:517:28)
+    at emitCloseNT (node:internal/streams/destroy:132:10)
+    at process.processTicksAndRejections (node:internal/process/task_queues:81:21)

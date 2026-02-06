@@ -5,6 +5,14 @@ const { query } = require('../config/database');
 let transporter = null;
 let currentConfig = null;
 
+const getFrontendUrl = () => {
+    if (process.env.FRONTEND_URL) return process.env.FRONTEND_URL;
+    if (process.env.NODE_ENV === 'production' || process.env.K_SERVICE) {
+        return 'https://padlas-fodem-szigeteles-wccgabnluq-ew.a.run.app';
+    }
+    return 'http://localhost:5173';
+};
+
 const getSettings = async () => {
     try {
         const result = await query('SELECT key, value FROM system_settings WHERE key IN ($1, $2, $3, $4, $5)',
@@ -85,7 +93,7 @@ const getTransporter = async () => {
     return transporter;
 };
 
-const sendEmail = async ({ to, subject, html, text }) => {
+const sendEmail = async ({ to, subject, html, text, attachments }) => {
     try {
         const transport = await getTransporter();
 
@@ -102,6 +110,7 @@ const sendEmail = async ({ to, subject, html, text }) => {
             subject,
             text, // plain text body
             html, // html body
+            attachments, // attachments array
         });
 
         console.log("📨 Email sent: %s", info.messageId);
@@ -121,7 +130,8 @@ const sendEmail = async ({ to, subject, html, text }) => {
 
 const sendInvitation = async (email, token, organizationName, userRole) => {
     // TODO: Frontend URL from env or db
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    // TODO: Frontend URL from env or db
+    const frontendUrl = getFrontendUrl();
     const inviteLink = `${frontendUrl}/accept-invite?token=${token}`;
 
     const html = `
@@ -143,7 +153,7 @@ const sendInvitation = async (email, token, organizationName, userRole) => {
 };
 
 const sendPasswordReset = async (email, token) => {
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const frontendUrl = getFrontendUrl();
     const resetLink = `${frontendUrl}/reset-password?token=${token}`;
 
     const html = `
@@ -162,8 +172,59 @@ const sendPasswordReset = async (email, token) => {
     });
 };
 
+const sendRemoteSignatureRequest = async (email, token, projectData, attachments) => {
+    const frontendUrl = getFrontendUrl();
+    const signLink = `${frontendUrl}/sign/${token}`;
+
+    const html = `
+        <h1>Üdvözlöm, ${projectData.full_name}!</h1>
+        <p>A BO-ZSO Hungary Kft. elkészítette a szerződést és a kapcsolódó dokumentumokat a padlásfödém szigeteléshez.</p>
+        <p>A dokumentumokat csatoltan találja átolvasásra.</p>
+        <p>Kérjük, az alábbi linkre kattintva írja alá a dokumentumokat digitálisan:</p>
+        <a href="${signLink}" style="padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px; display: inline-block; margin: 10px 0;">Aláírás megkezdése</a>
+        <p>Vagy másolja be ezt a linket a böngészőjébe:</p>
+        <p>${signLink}</p>
+        <p>Ez a link 3 napig érvényes.</p>
+        <hr>
+        <p>Üdvözlettel,<br>BO-ZSO Padlásfödém Szigetelés</p>
+    `;
+
+    return sendEmail({
+        to: email,
+        subject: 'Aláírásra váró dokumentumok - BO-ZSO Padlásfödém Szigetelés',
+        html,
+        text: `Aláírásra váró dokumentumok. Link: ${signLink}`,
+        attachments
+    });
+};
+
+const sendProjectDocuments = async (email, projectData, attachments) => {
+    const html = `
+        <h1>Kedves ${projectData.full_name}!</h1>
+        <p>Köszönjük, hogy a BO-ZSO Hungary Kft.-t választotta a padlásfödém szigetelési munkálatokhoz!</p>
+        <p>A projekt sikeresen lezárult. Csatoltan küldjük az összes aláírt dokumentumot:</p>
+        <ul>
+            ${attachments.map(att => `<li>${att.filename}</li>`).join('')}
+        </ul>
+        <p><strong>Projekt azonosító:</strong> ${projectData.contract_number}</p>
+        <p>A dokumentumokat kérjük őrizze meg, szükség esetén előfordulhat, hogy a hatóságok kérik.</p>
+        <hr>
+        <p>Üdvözlettel,<br>BO-ZSO Padlásfödém Szigetelés</p>
+    `;
+
+    return sendEmail({
+        to: email,
+        subject: `Aláírt dokumentumok - ${projectData.contract_number}`,
+        html,
+        text: `Aláírt dokumentumok a ${projectData.contract_number} projekthez.`,
+        attachments
+    });
+};
+
 module.exports = {
     sendInvitation,
     sendPasswordReset,
+    sendRemoteSignatureRequest,
+    sendProjectDocuments,
     sendEmail // Export generic sender for testing
 };

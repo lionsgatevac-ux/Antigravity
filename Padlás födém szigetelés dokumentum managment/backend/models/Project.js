@@ -24,8 +24,14 @@ class Project {
 
     // Get all projects (filtered by user role)
     static async findAll(filters = {}, user = null) {
-        let sql = `SELECT p.*, c.full_name as customer_name, pd.net_area, pd.energy_saving_gj, pr.address_city as property_city,
-                   u.company_name as owner_company
+        let sql = `SELECT p.*, 
+                   c.full_name as customer_name, c.email as customer_email, c.phone as customer_phone,
+                   c.address_postal_code as customer_postal_code, c.address_city as customer_city, 
+                   c.address_street as customer_street, c.address_house_number as customer_house_number,
+                   pd.net_area, pd.energy_saving_gj, 
+                   pr.address_city as property_city,
+                   u.company_name as owner_company,
+                   EXISTS(SELECT 1 FROM photos WHERE project_id = p.id AND photo_type = 'floor_plan') as has_floor_plan
                    FROM projects p 
                    LEFT JOIN project_details pd ON p.id = pd.project_id 
                    LEFT JOIN customers c ON pd.customer_id = c.id
@@ -73,6 +79,7 @@ class Project {
         const result = await query(
             `SELECT p.*, 
               pd.*, 
+              p.id, 
               c.full_name, c.phone, c.email, 
               c.birth_name, c.mother_name, c.id_number,
               c.address_postal_code as customer_postal_code,
@@ -93,7 +100,7 @@ class Project {
               u.role as owner_role,
               (SELECT file_url FROM photos WHERE project_id = p.id AND photo_type = 'floor_plan' ORDER BY taken_at DESC LIMIT 1) as floor_plan_url
        FROM projects p
-        INNER JOIN project_details pd ON p.id = pd.project_id
+        LEFT JOIN project_details pd ON p.id = pd.project_id
         LEFT JOIN customers c ON pd.customer_id = c.id
         LEFT JOIN properties pr ON pd.property_id = pr.id
         LEFT JOIN users u ON p.created_by = u.id

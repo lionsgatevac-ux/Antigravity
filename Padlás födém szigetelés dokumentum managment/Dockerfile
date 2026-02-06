@@ -1,32 +1,48 @@
-# Használjunk egy hivatalos Node.js runtime-ot
+# Use Node.js LTS
 FROM node:18-slim
 
-# Munkakönyvtár beállítása
+# Install system dependencies (LibreOffice, fonts)
+# Install system dependencies (LibreOffice, fonts)
+RUN apt-get update && apt-get install -y \
+    fontconfig \
+    libreoffice \
+    default-jre \
+    && rm -rf /var/lib/apt/lists/*
+
+# WORKDIR ROOT
 WORKDIR /app
 
-# Másoljuk a package.json fájlokat mindkét helyről
-COPY package*.json ./
-COPY backend/package*.json ./backend/
-COPY frontend/package*.json ./frontend/
-
-# Telepítsük a függőségeket
+# --- FRONTEND BUILD ---
+WORKDIR /app/frontend
+COPY frontend/package*.json ./
 RUN npm install
-RUN cd backend && npm install
-RUN cd frontend && npm install
+COPY frontend/ .
+RUN npm run build
 
-# Másoljuk a forráskódot
-COPY . .
+# --- BACKEND SETUP ---
+WORKDIR /app/backend
+COPY backend/package*.json ./
+RUN npm install --production
+COPY backend/ .
 
-# Buildeljük a frontendet
-RUN cd frontend && npm run build
+# Ensure upload/generated directories exist
+RUN mkdir -p uploads generated ../templates
 
-# Port beállítása (Cloud Run alapértelmezetten 8080-at vár, de a server.js-ben process.env.PORT-ot használunk)
+# Copy templates if they are in root/templates (based on prev structure they were in root/templates?)
+# Previous Dockerfile: RUN mkdir -p backend/uploads ... templates
+# documentGenerator.js expects: path.join(__dirname, '..', '..', 'templates') -> /app/templates
+# So we need to copy templates to /app/templates.
+WORKDIR /app
+COPY templates/ ./templates/
+
+# Copy Custom Fonts
+# COPY fonts/ /usr/share/fonts/truetype/custom/
+# RUN fc-cache -f -v
+
+# Environment
+ENV NODE_ENV=production
+ENV PORT=8080
 EXPOSE 8080
-ENV PORT 8080
-ENV NODE_ENV production
 
-# Mappa struktúra javítása (ha szükséges, pl. uploads és generated mappák létrehozása)
-RUN mkdir -p backend/uploads backend/generated templates
-
-# Indítás
-CMD ["node", "backend/server.js"]
+# Start the server directly
+CMD [ "node", "backend/server.js" ]
