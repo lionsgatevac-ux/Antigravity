@@ -602,6 +602,15 @@ class DocumentGenerator {
             munkadij: this.formatCurrency(data.labor_cost),
             munkadijbetuvel: laborCostWords, // Added for missing requirement
             munkadij_betuvel: laborCostWords, // Added alias to be safe
+
+            // Attic Declaration
+            padlasfeljaro_szigetelese_igen: data.attic_door_insulated ? 'X' : '',
+            padlasfeljaro_szigetelese_nem: !data.attic_door_insulated ? 'X' : '',
+            pf_kivul_fodemen: data.pf_kivul_fodemen ? 'X' : '',
+            pf_kivul_oromfal: data.pf_kivul_oromfal ? 'X' : '',
+            pf_kivul_bonthato: data.pf_kivul_bonthato ? 'X' : '',
+            pf_kivul_egyeb: data.pf_kivul_egyeb ? 'X' : '',
+            pf_kivul_egyeb_szoveg: data.pf_kivul_egyeb_szoveg || '',
             megtakaritas: energySaving,
             gj: energySaving,
             brszamoltertek: this.formatCurrency(szamoltGrossValue), // Updated to use calculated gross value

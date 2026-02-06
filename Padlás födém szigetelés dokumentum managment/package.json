@@ -1,6 +1,6 @@
 {
     "name": "bozso-padlas-system",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "description": "Padlásfödém szigetelés dokumentum menedzsment rendszer - BO-ZSO Hungary Kft",
     "private": true,
     "workspaces": [
