@@ -79,6 +79,7 @@ class Project {
         const result = await query(
             `SELECT p.*, 
               pd.*, 
+              pd.work_hour_start, pd.work_hour_end, pd.execution_date,
               p.id, 
               c.full_name, c.phone, c.email, 
               c.birth_name, c.mother_name, c.id_number,
@@ -98,7 +99,8 @@ class Project {
               u.company_reg_number as owner_company_reg_number,
               u.full_name as owner_name,
               u.role as owner_role,
-              (SELECT file_url FROM photos WHERE project_id = p.id AND photo_type = 'floor_plan' ORDER BY taken_at DESC LIMIT 1) as floor_plan_url
+              (SELECT file_url FROM photos WHERE project_id = p.id AND photo_type = 'floor_plan' ORDER BY taken_at DESC LIMIT 1) as floor_plan_url,
+              (SELECT file_url FROM photos WHERE project_id = p.id AND photo_type = 'floor_plan_plus' ORDER BY taken_at DESC LIMIT 1) as floor_plan_plus_url
        FROM projects p
         LEFT JOIN project_details pd ON p.id = pd.project_id
         LEFT JOIN customers c ON pd.customer_id = c.id
