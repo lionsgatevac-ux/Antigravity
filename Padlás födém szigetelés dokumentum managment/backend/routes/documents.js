@@ -129,13 +129,15 @@ router.post('/generate', async (req, res, next) => {
             work_start_date: projectData.work_start_date,
             work_end_date: projectData.work_end_date,
             handover_date: projectData.handover_date,
+            work_hour_start: projectData.work_hour_start,
+            work_hour_end: projectData.work_hour_end,
+            execution_date: projectData.execution_date,
             net_amount: projectData.net_amount,
             net_amount_words: projectData.net_amount_words,
             labor_cost: projectData.labor_cost,
             energy_saving_gj: projectData.energy_saving_gj,
             hem_value: projectData.hem_value,
             government_support: projectData.government_support,
-
             attic_door_insulated: projectData.attic_door_insulated,
             pf_kivul_fodemen: projectData.pf_kivul_fodemen,
             pf_kivul_oromfal: projectData.pf_kivul_oromfal,
@@ -154,6 +156,7 @@ router.post('/generate', async (req, res, next) => {
 
             // Floor Plan
             alaprajz: floorPlanBase64,
+            alaprajzplusz: projectData.floor_plan_plus_url || '',
 
             // Meta
             created_at: projectData.created_at
