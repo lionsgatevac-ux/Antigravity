@@ -11,6 +11,8 @@ import FloorPlanModal from '../components/FloorPlanModal';
 import './NewProject.css'; // Reuse styles
 
 const EditProject = () => {
+    // console.log('EditProject component loaded');
+
     const { id } = useParams();
     const navigate = useNavigate();
     const { showToast } = useApp();
@@ -66,7 +68,10 @@ const EditProject = () => {
             pf_kivul_oromfal: false,
             pf_kivul_bonthato: false,
             pf_kivul_egyeb: false,
-            pf_kivul_egyeb_szoveg: ''
+            pf_kivul_egyeb_szoveg: '',
+            work_hour_start: '9',
+            work_hour_end: '16',
+            execution_date: ''
         }
     });
 
@@ -77,7 +82,9 @@ const EditProject = () => {
     });
 
     const [floorPlanUrl, setFloorPlanUrl] = useState(null);
+    const [floorPlanPlusUrl, setFloorPlanPlusUrl] = useState(null);
     const [showFloorPlanModal, setShowFloorPlanModal] = useState(false);
+    const [showFloorPlanPlusModal, setShowFloorPlanPlusModal] = useState(false);
 
     const [errors, setErrors] = useState({});
 
@@ -148,21 +155,27 @@ const EditProject = () => {
                     labor_cost: project.labor_cost || '0',
                     hem_value: project.hem_value || '0',
                     government_support: project.government_support || '0',
-                    insulation_type: project.insulation_type || 'Thermowool Basic üveggyapot tekercs (0.039)',
-                    vapor_barrier_type: project.vapor_barrier_type || '',
-                    breathable_membrane_type: project.breathable_membrane_type || '',
+                    insulation_type: (typeof project.insulation_type === 'object' ? String(project.insulation_type.name || '') : String(project.insulation_type || 'Thermowool Basic üveggyapot tekercs (0.039)')),
+                    vapor_barrier_type: (typeof project.vapor_barrier_type === 'object' ? String(project.vapor_barrier_type.name || '') : String(project.vapor_barrier_type || '')),
+                    breathable_membrane_type: (typeof project.breathable_membrane_type === 'object' ? String(project.breathable_membrane_type.name || '') : String(project.breathable_membrane_type || '')),
                     // Attic Declaration Mapping
                     attic_door_insulated: project.attic_door_insulated === true, // Ensure boolean
                     pf_kivul_fodemen: project.pf_kivul_fodemen || false,
                     pf_kivul_oromfal: project.pf_kivul_oromfal || false,
                     pf_kivul_bonthato: project.pf_kivul_bonthato || false,
                     pf_kivul_egyeb: project.pf_kivul_egyeb || false,
-                    pf_kivul_egyeb_szoveg: project.pf_kivul_egyeb_szoveg || ''
+                    pf_kivul_egyeb_szoveg: project.pf_kivul_egyeb_szoveg || '',
+                    work_hour_start: project.work_hour_start || '9',
+                    work_hour_end: project.work_hour_end || '16',
+                    execution_date: project.execution_date ? new Date(project.execution_date).toISOString().split('T')[0] : '',
+                    manual_quantities: project.manual_quantities || {}
                 }
             });
 
+            setFloorPlanPlusUrl(project.floor_plan_plus_url);
+
             // Check if addresses are same
-            if (project.customer_city && project.property_city &&
+            if (project.customer_postal_code === project.property_postal_code &&
                 project.customer_city === project.property_city &&
                 project.customer_street === project.property_street &&
                 project.customer_house_number === project.property_house_number) {
@@ -172,15 +185,19 @@ const EditProject = () => {
             // Update material options with saved values if they are not in the default list
             setMaterialOptions(prev => {
                 const newOptions = { ...prev };
-                if (project.vapor_barrier_type && !newOptions.vapor_barrier.includes(project.vapor_barrier_type)) {
-                    newOptions.vapor_barrier = [...newOptions.vapor_barrier, project.vapor_barrier_type];
-                }
-                if (project.breathable_membrane_type && !newOptions.breathable_membrane.includes(project.breathable_membrane_type)) {
-                    newOptions.breathable_membrane = [...newOptions.breathable_membrane, project.breathable_membrane_type];
-                }
-                if (project.insulation_type && !newOptions.insulation.includes(project.insulation_type)) {
-                    newOptions.insulation = [...newOptions.insulation, project.insulation_type];
-                }
+                const categories = ['vapor_barrier', 'breathable_membrane', 'insulation'];
+
+                categories.forEach(cat => {
+                    const projectRaw = project[`${cat}_type`];
+                    const projectVal = typeof projectRaw === 'object' ? String(projectRaw.name || '') : String(projectRaw || '');
+
+                    if (projectVal) {
+                        const exists = newOptions[cat].some(opt => (typeof opt === 'string' ? opt : opt.name) === projectVal);
+                        if (!exists) {
+                            newOptions[cat] = [...newOptions[cat], projectVal];
+                        }
+                    }
+                });
                 return newOptions;
             });
 
@@ -362,9 +379,19 @@ const EditProject = () => {
 
         try {
             setLoading(true);
-            await projectsAPI.fullUpdate(id, formData);
+            const response = await projectsAPI.fullUpdate(id, formData); // Capture the response
             showToast('Projekt sikeresen frissítve!', 'success');
-            navigate(`/projects/${id}`);
+            // In EditProject, 'id' is already known. The instruction seems to be for NewProject.
+            // If the intent is to ensure the ID is valid or from the response, we can check.
+            // However, for an update, 'id' is the primary identifier.
+            const projectId = response?.data?.id || response?.id || response?.data?.project?.id || id; // Fallback to existing 'id'
+            if (projectId) {
+                navigate(`/projects/${projectId}`);
+            } else {
+                console.error('Project ID missing in response after update:', response);
+                showToast('Hiba: Nem sikerült a projekt azonosítóját lekérni a frissítés után', 'error');
+                navigate(`/projects`); // Navigate to projects list if ID is truly lost
+            }
         } catch (error) {
             console.error('Error updating project:', error);
             showToast('Hiba a mentés során', 'error');
@@ -472,6 +499,42 @@ const EditProject = () => {
                 {step === 2 && (
                     <div className="form-section">
                         <h2>2. Ingatlan Adatok</h2>
+
+                        <div className="form-row">
+                            <div className="form-group">
+                                <label className="form-label">Munka megkezdése (óra)</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    max="23"
+                                    value={formData.details.work_hour_start}
+                                    onChange={(e) => handleInputChange('details', 'work_hour_start', e.target.value)}
+                                    placeholder="9"
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">Munka befejezése (óra)</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    max="23"
+                                    value={formData.details.work_hour_end}
+                                    onChange={(e) => handleInputChange('details', 'work_hour_end', e.target.value)}
+                                    placeholder="16"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">Kivitelezés dátuma</label>
+                            <input
+                                type="date"
+                                value={formData.details.execution_date}
+                                onChange={(e) => handleInputChange('details', 'execution_date', e.target.value)}
+                            />
+                            <small className="text-muted">Alapértelmezetten a szerződéskötés napja</small>
+                        </div>
+
                         <div className="form-group">
                             <label className="form-label">HRSZ *</label>
                             <input type="text" value={formData.property.hrsz} onChange={(e) => handleInputChange('property', 'hrsz', e.target.value)} className={errors['property.hrsz'] ? 'error' : ''} />
@@ -570,6 +633,7 @@ const EditProject = () => {
 
                 {step === 3 && (
                     <div className="form-section">
+
                         <h2>3. Műszaki és Pénzügyi Adatok</h2>
                         <h3>Területek (m²)</h3>
                         <div className="form-row">
@@ -684,36 +748,124 @@ const EditProject = () => {
                         <div className="material-selection-row">
                             <label className="form-label">Párazáró fólia típusa:</label>
                             <div className="input-group">
-                                <select value={formData.details.vapor_barrier_type} onChange={(e) => handleInputChange('details', 'vapor_barrier_type', e.target.value)}>
+                                <select
+                                    value={formData.details.vapor_barrier_type && typeof formData.details.vapor_barrier_type === 'object' ? formData.details.vapor_barrier_type.name : (formData.details.vapor_barrier_type || '')}
+                                    onChange={(e) => handleInputChange('details', 'vapor_barrier_type', e.target.value)}
+                                >
                                     <option value="">Válasszon típust...</option>
-                                    {materialOptions.vapor_barrier.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                    {materialOptions.vapor_barrier.map((opt, idx) => {
+                                        const label = typeof opt === 'string' ? opt : String(opt.name || '');
+                                        const val = typeof opt === 'string' ? opt : String(opt.name || '');
+                                        return <option key={idx} value={val}>{label}</option>;
+                                    })}
                                 </select>
                                 <button type="button" className="btn-icon-plus" onClick={() => addNewMaterialOption('vapor_barrier')}><Plus size={20} /></button>
                             </div>
+                            {(() => {
+                                const val = formData.details.vapor_barrier_type;
+                                const name = typeof val === 'object' ? String(val.name || '') : String(val || '');
+                                const optionsList = materialOptions.vapor_barrier || [];
+                                const selected = optionsList.find(m => (typeof m === 'string' ? m : String(m.name || '')) === name);
+                                const needsManual = selected && (typeof selected === 'string' || !selected.coverage);
+                                if (needsManual && name) {
+                                    return (
+                                        <div className="mt-2">
+                                            <label className="small text-muted">Mennyiség (tekercs):</label>
+                                            <input
+                                                type="number"
+                                                className="form-control form-control-sm"
+                                                value={String(formData.details.manual_quantities?.vapor_barrier || '')}
+                                                onChange={(e) => handleInputChange('details', 'manual_quantities', { ...formData.details.manual_quantities, vapor_barrier: e.target.value })}
+                                                placeholder="Kézi megadás..."
+                                            />
+                                        </div>
+                                    );
+                                }
+                                return null;
+                            })()}
                         </div>
                         <div className="material-selection-row">
                             <label className="form-label">Üveggyapot típusa:</label>
                             <div className="input-group">
-                                <select value={formData.details.insulation_type} onChange={(e) => handleInputChange('details', 'insulation_type', e.target.value)}>
-                                    {materialOptions.insulation.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                <select
+                                    value={formData.details.insulation_type && typeof formData.details.insulation_type === 'object' ? formData.details.insulation_type.name : (formData.details.insulation_type || '')}
+                                    onChange={(e) => handleInputChange('details', 'insulation_type', e.target.value)}
+                                >
+                                    <option value="">Válasszon...</option>
+                                    {materialOptions.insulation.map((opt, idx) => {
+                                        const label = typeof opt === 'string' ? opt : String(opt.name || '');
+                                        const val = typeof opt === 'string' ? opt : String(opt.name || '');
+                                        return <option key={idx} value={val}>{label}</option>;
+                                    })}
                                 </select>
                                 <button type="button" className="btn-icon-plus" onClick={() => addNewMaterialOption('insulation')}><Plus size={20} /></button>
                             </div>
+                            {(() => {
+                                const val = formData.details.insulation_type;
+                                const name = typeof val === 'object' ? String(val.name || '') : String(val || '');
+                                const optionsList = materialOptions.insulation || [];
+                                const selected = optionsList.find(m => (typeof m === 'string' ? m : String(m.name || '')) === name);
+                                const needsManual = selected && (typeof selected === 'string' || !selected.coverage);
+                                if (needsManual && name) {
+                                    return (
+                                        <div className="mt-2">
+                                            <label className="small text-muted">Mennyiség (tekercs):</label>
+                                            <input
+                                                type="number"
+                                                className="form-control form-control-sm"
+                                                value={String(formData.details.manual_quantities?.insulation || '')}
+                                                onChange={(e) => handleInputChange('details', 'manual_quantities', { ...formData.details.manual_quantities, insulation: e.target.value })}
+                                                placeholder="Kézi megadás..."
+                                            />
+                                        </div>
+                                    );
+                                }
+                                return null;
+                            })()}
                         </div>
                         <div className="material-selection-row">
                             <label className="form-label">Pára áteresztő fólia:</label>
                             <div className="input-group">
-                                <select value={formData.details.breathable_membrane_type} onChange={(e) => handleInputChange('details', 'breathable_membrane_type', e.target.value)}>
+                                <select
+                                    value={formData.details.breathable_membrane_type && typeof formData.details.breathable_membrane_type === 'object' ? formData.details.breathable_membrane_type.name : (formData.details.breathable_membrane_type || '')}
+                                    onChange={(e) => handleInputChange('details', 'breathable_membrane_type', e.target.value)}
+                                >
                                     <option value="">Válasszon típust...</option>
-                                    {materialOptions.breathable_membrane.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                    {materialOptions.breathable_membrane.map((opt, idx) => {
+                                        const label = typeof opt === 'string' ? opt : String(opt.name || '');
+                                        const val = typeof opt === 'string' ? opt : String(opt.name || '');
+                                        return <option key={idx} value={val}>{label}</option>;
+                                    })}
                                 </select>
                                 <button type="button" className="btn-icon-plus" onClick={() => addNewMaterialOption('breathable_membrane')}><Plus size={20} /></button>
                             </div>
+                            {(() => {
+                                const val = formData.details.breathable_membrane_type;
+                                const name = typeof val === 'object' ? String(val.name || '') : String(val || '');
+                                const optionsList = materialOptions.breathable_membrane || [];
+                                const selected = optionsList.find(m => (typeof m === 'string' ? m : String(m.name || '')) === name);
+                                const needsManual = selected && (typeof selected === 'string' || !selected.coverage);
+                                if (needsManual && name) {
+                                    return (
+                                        <div className="mt-2">
+                                            <label className="small text-muted">Mennyiség (tekercs):</label>
+                                            <input
+                                                type="number"
+                                                className="form-control form-control-sm"
+                                                value={String(formData.details.manual_quantities?.breathable_membrane || '')}
+                                                onChange={(e) => handleInputChange('details', 'manual_quantities', { ...formData.details.manual_quantities, breathable_membrane: e.target.value })}
+                                                placeholder="Kézi megadás..."
+                                            />
+                                        </div>
+                                    );
+                                }
+                                return null;
+                            })()}
                         </div>
 
                         <div className="calculated-field">
                             <label className="form-label">Nettó szigetelt terület</label>
-                            <div className="calculated-value">{formData.details.net_area} m²</div>
+                            <div className="calculated-value">{String(formData.details.net_area)} m²</div>
                         </div>
                         <div className="calculated-field">
                             <label className="form-label">Energiamegtakarítás</label>
@@ -736,7 +888,7 @@ const EditProject = () => {
                                 <div style={{ marginBottom: '20px', border: '1px solid #eee', borderRadius: '8px', padding: '10px', backgroundColor: '#fdfdfd' }}>
                                     <p style={{ fontSize: '0.9em', color: '#666', marginBottom: '10px' }}>Jelenlegi alaprajz:</p>
                                     <img
-                                        src={`${import.meta.env.PROD ? '' : 'http://localhost:3000'}${floorPlanUrl}`}
+                                        src={`${import.meta.env.PROD ? '' : 'http://localhost:4000'}${floorPlanUrl}`}
                                         alt="Alaprajz"
                                         style={{ maxWidth: '100%', borderRadius: '4px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}
                                     />
@@ -755,6 +907,39 @@ const EditProject = () => {
                             >
                                 <PenTool size={18} style={{ marginRight: '8px' }} />
                                 {floorPlanUrl ? 'Alaprajz Szerkesztése (V2)' : 'Új Alaprajz Készítése (V2)'}
+                            </button>
+                        </div>
+
+                        {/* SECOND FLOOR PLAN SECTION */}
+                        <div className="card" style={{ padding: '20px', backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', marginTop: '20px' }}>
+                            <h3 style={{ fontSize: '1.1em', fontWeight: 'bold', marginBottom: '15px', color: '#4b5563' }}>Kiegészítő Alaprajz (Opcionális)</h3>
+                            <p style={{ fontSize: '0.9em', color: '#666', marginBottom: '15px' }}>
+                                Ha az ingatlannak két különálló padlástere van, itt tölthet fel egy második alaprajzot.
+                            </p>
+
+                            {floorPlanPlusUrl ? (
+                                <div style={{ marginBottom: '20px', border: '1px solid #eee', borderRadius: '8px', padding: '10px', backgroundColor: '#fdfdfd' }}>
+                                    <p style={{ fontSize: '0.9em', color: '#666', marginBottom: '10px' }}>Jelenlegi kiegészítő alaprajz:</p>
+                                    <img
+                                        src={`${import.meta.env.PROD ? '' : 'http://localhost:4000'}${floorPlanPlusUrl}`}
+                                        alt="Kiegészítő Alaprajz"
+                                        style={{ maxWidth: '100%', borderRadius: '4px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}
+                                    />
+                                </div>
+                            ) : (
+                                <div style={{ padding: '20px', textAlign: 'center', color: '#666', background: '#f9fafb', borderRadius: '8px', marginBottom: '20px', border: '1px dashed #e5e7eb' }}>
+                                    <p>Nincs még kiegészítő alaprajz feltöltve.</p>
+                                </div>
+                            )}
+
+                            <button
+                                type="button"
+                                onClick={() => setShowFloorPlanPlusModal(true)}
+                                className="btn btn-secondary w-full flex items-center justify-center gap-2"
+                                style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#6366f1', color: 'white' }}
+                            >
+                                <PenTool size={18} style={{ marginRight: '8px' }} />
+                                {floorPlanPlusUrl ? 'Kiegészítő Alaprajz Szerkesztése' : 'Új Kiegészítő Alaprajz'}
                             </button>
                         </div>
                     </div>
@@ -787,6 +972,19 @@ const EditProject = () => {
                 onSaveSuccess={() => {
                     loadProject();
                     showToast('Alaprajz sikeresen mentve!', 'success');
+                }}
+            />
+
+            <FloorPlanModal
+                projectId={id}
+                initialImageUrl={floorPlanPlusUrl}
+                isOpen={showFloorPlanPlusModal}
+                onClose={() => setShowFloorPlanPlusModal(false)}
+                photoType="floor_plan_plus"
+                title="Kiegészítő Alaprajz Tervező"
+                onSaveSuccess={() => {
+                    loadProject();
+                    showToast('Kiegészítő alaprajz sikeresen mentve!', 'success');
                 }}
             />
         </div>

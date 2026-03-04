@@ -21,7 +21,7 @@ const errorHandler = require('./middleware/errorHandler');
 
 // Initialize Express app
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 4000;
 
 // Middleware
 app.use(cors({
@@ -127,7 +127,7 @@ console.log(`[Server] Port configured as: ${PORT}`);
 
 
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Backend server running on http://localhost:${PORT} (v2.2 - Production)`);
     console.log(`📝 Environment: ${process.env.NODE_ENV}`);
     console.log(`🗄️  Database: ${process.env.DATABASE_URL ? 'Connected' : 'Not configured'}`);

@@ -31,7 +31,7 @@ export default function FloorPlanModal({ projectId, isOpen, onClose, onSaveSucce
             if (initialImageUrl && !backgroundImage) {
                 const img = new Image();
                 img.crossOrigin = "anonymous"; // Important for canvas export
-                const baseUrl = import.meta.env.PROD ? '' : 'http://localhost:3000';
+                const baseUrl = import.meta.env.PROD ? '' : 'http://localhost:4000';
                 img.src = initialImageUrl.startsWith('http') ? initialImageUrl : `${baseUrl}${initialImageUrl}`;
                 img.onload = () => {
                     setBackgroundImage(img);

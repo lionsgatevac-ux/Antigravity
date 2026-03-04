@@ -1,0 +1,9 @@
+C:\Users\Admin\OneDrive\Asztali gép\Antigravity\Padlás födém szigetelés dokumentum managment\backend\routes\documents.js:123
+        const { query } = require('../config/database');
+                ^
+
+SyntaxError: Identifier 'query' has already been declared
+    at wrapSafe (node:internal/modules/cjs/loader:1692:18)
+    at checkSyntax (node:internal/main/check_syntax:76:3)
+
+Node.js v24.11.1

@@ -2,6 +2,9 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { syncOfflineData } from '../services/sync';
 
 const AppContext = createContext();
+// Use relative path for API calls to leverage Vite proxy
+export const API_URL = '/api';
+export const DIRECT_API_URL = 'http://localhost:4000/api';
 
 export const useApp = () => {
     const context = useContext(AppContext);

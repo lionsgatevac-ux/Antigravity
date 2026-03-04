@@ -1,0 +1,13 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copy migration script and dependencies
+COPY migrate_production.js .
+COPY package*.json ./
+
+# Install dependencies
+RUN npm install pg dotenv
+
+# Run migration
+CMD ["node", "migrate_production.js"]

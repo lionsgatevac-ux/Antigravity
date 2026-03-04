@@ -1,0 +1,52 @@
+--- Checking Templates Directory ---
+
+📄 [2026 atadas_atveteli.docx]
+   Path: C:\Users\Admin\OneDrive\Asztali gép\Antigravity\Padlás födém szigetelés dokumentum managment\templates\2026 atadas_atveteli.docx
+   Size: 2025275 bytes
+   Modified: 2026-02-07T13:03:17.145Z
+   ✅ VALID DOCX
+   Length of document.xml: 64249 chars
+
+📄 [kivitelezesi_szerzodes.docx]
+   Path: C:\Users\Admin\OneDrive\Asztali gép\Antigravity\Padlás födém szigetelés dokumentum managment\templates\kivitelezesi_szerzodes.docx
+   Size: 3014190 bytes
+   Modified: 2026-02-07T13:03:17.204Z
+   ✅ VALID DOCX
+   Length of document.xml: 102904 chars
+
+📄 [kivitelezoi_nyilatkozat.docx]
+   Path: C:\Users\Admin\OneDrive\Asztali gép\Antigravity\Padlás födém szigetelés dokumentum managment\templates\kivitelezoi_nyilatkozat.docx
+   Size: 3776583 bytes
+   Modified: 2026-02-07T19:00:33.000Z
+   ✅ VALID DOCX
+   Length of document.xml: 238093 chars
+
+📄 [kivitelezoi_nyilatkozat_OLD.docx]
+   Path: C:\Users\Admin\OneDrive\Asztali gép\Antigravity\Padlás födém szigetelés dokumentum managment\templates\kivitelezoi_nyilatkozat_OLD.docx
+   Size: 2753806 bytes
+   Modified: 2026-02-06T21:42:34.595Z
+   ✅ VALID DOCX
+   Length of document.xml: 120589 chars
+
+📄 [megallapodas_hem.docx]
+   Path: C:\Users\Admin\OneDrive\Asztali gép\Antigravity\Padlás födém szigetelés dokumentum managment\templates\megallapodas_hem.docx
+   Size: 3752567 bytes
+   Modified: 2026-02-07T09:04:53.325Z
+   ✅ VALID DOCX
+   Length of document.xml: 172505 chars
+
+📄 [tamogatas_igenylo.docx]
+   Path: C:\Users\Admin\OneDrive\Asztali gép\Antigravity\Padlás födém szigetelés dokumentum managment\templates\tamogatas_igenylo.docx
+   Size: 15154 bytes
+   Modified: 2026-02-07T09:04:53.334Z
+   ✅ VALID DOCX
+   Length of document.xml: 14955 chars
+
+--- Checking Reference File ---
+
+📄 [HELYES_FAJL_SZERVERROL.docx]
+   Path: C:\Users\Admin\OneDrive\Asztali gép\Antigravity\Padlás födém szigetelés dokumentum managment\HELYES_FAJL_SZERVERROL.docx
+   Size: 3776225 bytes
+   Modified: 2025-12-21T19:29:04.000Z
+   ✅ VALID DOCX
+   Length of document.xml: 235331 chars

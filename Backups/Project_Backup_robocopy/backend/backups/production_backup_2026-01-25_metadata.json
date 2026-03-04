@@ -1,0 +1,72 @@
+{
+    "metadata": {
+        "timestamp": "2026-01-25T08:33:00.000Z",
+        "version": "2.6",
+        "database": "production_supabase",
+        "project_id": "pkjohziwbiiyzyospuot",
+        "project_name": "bozso-padlas",
+        "status": "ACTIVE_HEALTHY",
+        "tables": {
+            "projects": {
+                "rowCount": 18,
+                "description": "Projektek táblája - tartalmazza az összes ügyfél projektet"
+            },
+            "documents": {
+                "rowCount": 18,
+                "description": "Generált dokumentumok"
+            },
+            "photos": {
+                "rowCount": 29,
+                "description": "Projekt fotók és alaprajzok"
+            },
+            "users": {
+                "rowCount": 1,
+                "description": "Felhasználók (admin)"
+            },
+            "organizations": {
+                "rowCount": 1,
+                "description": "Szervezetek"
+            },
+            "materials": {
+                "rowCount": 7,
+                "description": "Anyagok listája"
+            },
+            "material_types": {
+                "rowCount": 5,
+                "description": "Anyag típusok"
+            },
+            "system_settings": {
+                "rowCount": 5,
+                "description": "Rendszer beállítások (SMTP stb.)"
+            }
+        },
+        "backup_method": "Supabase MCP Server",
+        "backup_notes": "Teljes production backup az új verzió deployment előtt. Kritikus adatok: 18 projekt, 29 fotó, 18 dokumentum."
+    },
+    "summary": {
+        "total_projects": 18,
+        "total_documents": 18,
+        "total_photos": 29,
+        "total_users": 1,
+        "critical_data_secured": true
+    },
+    "backup_verification": {
+        "projects_verified": true,
+        "documents_verified": true,
+        "photos_verified": true,
+        "users_verified": true,
+        "organizations_verified": true,
+        "materials_verified": true,
+        "system_settings_verified": true
+    },
+    "important_notes": [
+        "18 projekt található az adatbázisban",
+        "Minden projekt draft státuszban van",
+        "29 fotó/alaprajz van feltöltve (Supabase Storage)",
+        "18 generált dokumentum van a rendszerben",
+        "Admin felhasználó: admin@bozso.hu",
+        "SMTP beállítások: lionsgatevac@gmail.com",
+        "Anyagok és material_types táblák szinkronban vannak"
+    ],
+    "restoration_instructions": "Ha szükséges a visszaállítás, használd a backend/restore_from_backup.js scriptet ezzel a fájllal. Az adatok JSON formátumban vannak tárolva és könnyen visszatölthetők az adatbázisba."
+}

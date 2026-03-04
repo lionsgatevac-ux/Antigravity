@@ -1,5 +1,8 @@
 {
-  "message": "Failed to generate document: PDF generálás sikertelen (LibreOffice hiba). Kérlek ellenőrizd, hogy a LibreOffice telepítve van-e a szerveren.",
-  "stack": "Error: Failed to generate document: PDF generálás sikertelen (LibreOffice hiba). Kérlek ellenőrizd, hogy a LibreOffice telepítve van-e a szerveren.\n    at DocumentGenerator.generate (C:\\Users\\Admin\\OneDrive\\Asztali gép\\Antigravity\\Padlás födém szigetelés dokumentum managment\\backend\\services\\documentGenerator.js:321:19)\n    at async C:\\Users\\Admin\\OneDrive\\Asztali gép\\Antigravity\\Padlás födém szigetelés dokumentum managment\\backend\\routes\\documents.js:151:24",
-  "type": "ROUTE_ERROR"
+  "timestamp": "2026-02-09T11:26:16.493Z",
+  "message": "Feltöltési hiba: A Supabase Storage nincs beállítva (ID: 99999) (hiányzó jelkörnyezeti változók).",
+  "stack": "Error: Feltöltési hiba: A Supabase Storage nincs beállítva (ID: 99999) (hiányzó jelkörnyezeti változók).\n    at C:\\Users\\Admin\\OneDrive\\Asztali gép\\Antigravity\\Padlás födém szigetelés dokumentum managment\\backend\\routes\\uploads.js:51:19\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)",
+  "type": "Error",
+  "url": "/api/uploads/photo",
+  "method": "POST"
 }

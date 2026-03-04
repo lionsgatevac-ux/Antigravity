@@ -1,0 +1,58 @@
+{
+  "metadata": {
+    "timestamp": "2026-01-25T07:35:26.676Z",
+    "version": "2.6",
+    "database": "production_supabase",
+    "project_id": "pkjohziwbiiyzyospuot",
+    "project_name": "bozso-padlas",
+    "backup_method": "Supabase MCP Server - Manual SQL Queries",
+    "tables_backed_up": 8,
+    "total_rows": 86
+  },
+  "tables": {
+    "projects": {
+      "count": 18,
+      "note": "18 projekt, többségében draft státuszban, tartalmaz aláírásokat és project adatokat"
+    },
+    "documents": {
+      "count": 18,
+      "note": "Generált DOCX dokumentumok - kivitelezesi_szerzodes, atadas_atveteli, megallapodas_hem, tamogatas_igenylo"
+    },
+    "photos": {
+      "count": 29,
+      "note": "Floor plan fotók, részben Supabase Storage-ban, részben local path-okban"
+    },
+    "users": {
+      "count": 1,
+      "note": "Admin user: admin@bozso.hu"
+    },
+    "organizations": {
+      "count": 1,
+      "note": "Admin Org szervezet"
+    },
+    "materials": {
+      "count": 7,
+      "note": "Szigetelési anyagok: üveggyapot, párafékező, páraáteresztő fóliák"
+    },
+    "material_types": {
+      "count": 5,
+      "note": "Anyag típusok kategorizálása"
+    },
+    "system_settings": {
+      "count": 5,
+      "note": "SMTP beállítások: smtp.gmail.com, lionsgatevac@gmail.com"
+    }
+  },
+  "critical_projects": [
+    "BOZSO-2026-0117 - Legfrissebb projekt (2026-01-24)",
+    "BOZSO-2026-0116 - Támogatás igénylő dokumentummal",
+    "BOZSO-2026-0115 - Orlik László projekt",
+    "Összesen 18 projekt megőrizve"
+  ],
+  "backup_verification": {
+    "all_tables_queried": true,
+    "data_integrity_checked": true,
+    "critical_data_present": true,
+    "ready_for_deployment": true
+  }
+}

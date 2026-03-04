@@ -64,7 +64,10 @@ const ProjectDetails = () => {
             // Construct download URL
             if (response.data && response.data.fileUrl) {
                 // FORCE BACKEND URL with cache-busting timestamp
-                const backendBaseUrl = import.meta.env.PROD ? '' : 'http://localhost:3000';
+                // Use relative path for API calls since we have a proxy
+                const API_URL = '/api';
+                const DIRECT_API_URL = 'http://localhost:4000/api';
+                const backendBaseUrl = import.meta.env.PROD ? '' : 'http://localhost:4000';
                 const timestamp = new Date().getTime(); // Cache buster
                 const staticUrl = `${backendBaseUrl}${response.data.fileUrl}?t=${timestamp}`;
                 console.log('Opening static URL:', staticUrl);

@@ -65,12 +65,20 @@ const NewProject = () => {
             pf_kivul_oromfal: false,
             pf_kivul_bonthato: false,
             pf_kivul_egyeb: false,
-            pf_kivul_egyeb_szoveg: ''
+            pf_kivul_egyeb_szoveg: '',
+            work_hour_start: '9',
+            work_hour_end: '16',
+            execution_date: '',
+            manual_quantities: {
+                insulation: '',
+                vapor_barrier: '',
+                breathable_membrane: ''
+            }
         }
     });
 
     const [materialOptions, setMaterialOptions] = useState({
-        insulation: ['Thermowool Basic üveggyapot tekercs (0.039)'],
+        insulation: [], // Empty initially, let API populate
         vapor_barrier: [],
         breathable_membrane: []
     });
@@ -80,6 +88,11 @@ const NewProject = () => {
     const [isAddressSame, setIsAddressSame] = useState(formData.property.address_city === '' ||
         (formData.customer.address_city === formData.property.address_city &&
             formData.customer.address_street === formData.property.address_street));
+
+    // Scroll to top when step changes
+    useEffect(() => {
+        window.scrollTo(0, 0);
+    }, [step]);
 
     // Fetch materials from API on component mount
     useEffect(() => {
@@ -195,6 +208,27 @@ const NewProject = () => {
                     hem_value: String(Math.round(contractorFee))
                 }
             }));
+            setFormData(prev => ({
+                ...prev,
+                details: {
+                    ...prev.details,
+                    net_area: netArea,
+                    net_amount: String(Math.round(contractorFee)),
+                    energy_saving_gj: energySaving,
+                    hem_value: String(Math.round(contractorFee))
+                }
+            }));
+        }
+
+        // Handle manual quantities update
+        if (section === 'details' && field === 'manual_quantities') {
+            setFormData(prev => ({
+                ...prev,
+                details: {
+                    ...prev.details,
+                    manual_quantities: value
+                }
+            }));
         }
     };
 
@@ -221,6 +255,8 @@ const NewProject = () => {
         if (newValue && newValue.trim()) {
             try {
                 // Save to database
+                // Use relative path or updated port
+                const API_URL = import.meta.env.PROD ? '' : 'http://localhost:4000/api';
                 const response = await materialsAPI.create({
                     category: category,
                     name: newValue.trim()
@@ -230,7 +266,7 @@ const NewProject = () => {
                     // Update local state
                     setMaterialOptions(prev => ({
                         ...prev,
-                        [category]: [...prev[category], newValue.trim()]
+                        [category]: [...prev[category], response.data] // Push full object
                     }));
 
                     // Auto-select the new value
@@ -340,7 +376,7 @@ const NewProject = () => {
             console.log('Project creation response:', response);
             showToast(isDraft ? 'Vázlat sikeresen mentve!' : 'Projekt sikeresen létrehozva!', 'success');
 
-            const projectId = response?.data?.project?.id;
+            const projectId = response?.data?.id || response?.id || response?.data?.project?.id;
             if (projectId) {
                 navigate(`/projects/${projectId}`);
             } else {
@@ -348,8 +384,8 @@ const NewProject = () => {
                 showToast('Hiba: Nem sikerült a projekt azonosítóját lekérni', 'error');
             }
         } catch (error) {
-            const errorMessage = error.response?.data?.error || error.message || 'Hiba a mentés során';
-            showToast(errorMessage, 'error');
+            const errorMessage = error.response?.data?.error?.message || error.response?.data?.error || error.message || 'Hiba a mentés során';
+            showToast(typeof errorMessage === 'string' ? errorMessage : 'Váratlan hiba történt', 'error');
             console.error(error);
         } finally {
             setLoading(false);
@@ -556,6 +592,41 @@ const NewProject = () => {
                     <div className="form-section">
                         <TestButton />
                         <h2>2. Ingatlan Adatok</h2>
+
+                        <div className="form-row">
+                            <div className="form-group">
+                                <label className="form-label">Munka megkezdése (óra)</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    max="23"
+                                    value={formData.details.work_hour_start}
+                                    onChange={(e) => handleInputChange('details', 'work_hour_start', e.target.value)}
+                                    placeholder="9"
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">Munka befejezése (óra)</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    max="23"
+                                    value={formData.details.work_hour_end}
+                                    onChange={(e) => handleInputChange('details', 'work_hour_end', e.target.value)}
+                                    placeholder="16"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">Kivitelezés dátuma</label>
+                            <input
+                                type="date"
+                                value={formData.details.execution_date || (formData.customer.address_postal_code ? new Date().toISOString().split('T')[0] : '')}
+                                onChange={(e) => handleInputChange('details', 'execution_date', e.target.value)}
+                            />
+                            <small className="text-muted">Alapértelmezetten a szerződéskötés napja</small>
+                        </div>
 
                         <div className="form-group">
                             <label className="form-label">HRSZ *</label>
@@ -883,14 +954,36 @@ const NewProject = () => {
                                     onChange={(e) => handleInputChange('details', 'vapor_barrier_type', e.target.value)}
                                 >
                                     <option value="">Válasszon típust...</option>
-                                    {materialOptions.vapor_barrier.map(opt => (
-                                        <option key={opt} value={opt}>{opt}</option>
-                                    ))}
+                                    {materialOptions.vapor_barrier.map((opt, idx) => {
+                                        const label = typeof opt === 'string' ? opt : String(opt.name || '');
+                                        const val = typeof opt === 'string' ? opt : String(opt.name || '');
+                                        return <option key={idx} value={val}>{label}</option>;
+                                    })}
+
                                 </select>
                                 <button type="button" className="btn-icon-plus" onClick={() => addNewMaterialOption('vapor_barrier')}>
                                     <Plus size={20} />
                                 </button>
                             </div>
+                            {(() => {
+                                const selected = materialOptions.vapor_barrier.find(m => (typeof m === 'string' ? m : m.name) === formData.details.vapor_barrier_type);
+                                const needsManual = selected && (typeof selected === 'string' || !selected.coverage);
+
+                                if (needsManual && formData.details.vapor_barrier_type) {
+                                    return (
+                                        <div className="mt-2">
+                                            <label className="small text-muted">Mennyiség (tekercs):</label>
+                                            <input
+                                                type="number"
+                                                className="form-control form-control-sm"
+                                                value={formData.details.manual_quantities?.vapor_barrier || ''}
+                                                onChange={(e) => handleInputChange('details', 'manual_quantities', { ...formData.details.manual_quantities, vapor_barrier: e.target.value })}
+                                                placeholder="Kézi megadás..."
+                                            />
+                                        </div>
+                                    );
+                                }
+                            })()}
                         </div>
 
                         <div className="material-selection-row">
@@ -900,14 +993,38 @@ const NewProject = () => {
                                     value={formData.details.insulation_type}
                                     onChange={(e) => handleInputChange('details', 'insulation_type', e.target.value)}
                                 >
-                                    {materialOptions.insulation.map(opt => (
-                                        <option key={opt} value={opt}>{opt}</option>
-                                    ))}
+                                    <option value="">Válasszon...</option>
+                                    {materialOptions.insulation.map((opt, idx) => {
+                                        const label = typeof opt === 'string' ? opt : String(opt.name || '');
+                                        const val = typeof opt === 'string' ? opt : String(opt.name || '');
+                                        return <option key={idx} value={val}>{label}</option>;
+                                    })}
+
                                 </select>
                                 <button type="button" className="btn-icon-plus" onClick={() => addNewMaterialOption('insulation')}>
                                     <Plus size={20} />
                                 </button>
                             </div>
+                            {(() => {
+                                const selected = materialOptions.insulation.find(m => (typeof m === 'string' ? m : m.name) === formData.details.insulation_type);
+                                // Show manual input if selected exists AND (it's a string OR (object with no coverage))
+                                const needsManual = selected && (typeof selected === 'string' || !selected.coverage);
+
+                                if (needsManual && formData.details.insulation_type) {
+                                    return (
+                                        <div className="mt-2">
+                                            <label className="small text-muted">Mennyiség (tekercs):</label>
+                                            <input
+                                                type="number"
+                                                className="form-control form-control-sm"
+                                                value={formData.details.manual_quantities?.insulation || ''}
+                                                onChange={(e) => handleInputChange('details', 'manual_quantities', { ...formData.details.manual_quantities, insulation: e.target.value })}
+                                                placeholder="Kézi megadás..."
+                                            />
+                                        </div>
+                                    );
+                                }
+                            })()}
                         </div>
 
                         <div className="material-selection-row">
@@ -918,14 +1035,36 @@ const NewProject = () => {
                                     onChange={(e) => handleInputChange('details', 'breathable_membrane_type', e.target.value)}
                                 >
                                     <option value="">Válasszon típust...</option>
-                                    {materialOptions.breathable_membrane.map(opt => (
-                                        <option key={opt} value={opt}>{opt}</option>
-                                    ))}
+                                    {materialOptions.breathable_membrane.map((opt, idx) => {
+                                        const label = typeof opt === 'string' ? opt : String(opt.name || '');
+                                        const val = typeof opt === 'string' ? opt : String(opt.name || '');
+                                        return <option key={idx} value={val}>{label}</option>;
+                                    })}
+
                                 </select>
                                 <button type="button" className="btn-icon-plus" onClick={() => addNewMaterialOption('breathable_membrane')}>
                                     <Plus size={20} />
                                 </button>
                             </div>
+                            {(() => {
+                                const selected = materialOptions.breathable_membrane.find(m => (typeof m === 'string' ? m : m.name) === formData.details.breathable_membrane_type);
+                                const needsManual = selected && (typeof selected === 'string' || !selected.coverage);
+
+                                if (needsManual && formData.details.breathable_membrane_type) {
+                                    return (
+                                        <div className="mt-2">
+                                            <label className="small text-muted">Mennyiség (tekercs):</label>
+                                            <input
+                                                type="number"
+                                                className="form-control form-control-sm"
+                                                value={formData.details.manual_quantities?.breathable_membrane || ''}
+                                                onChange={(e) => handleInputChange('details', 'manual_quantities', { ...formData.details.manual_quantities, breathable_membrane: e.target.value })}
+                                                placeholder="Kézi megadás..."
+                                            />
+                                        </div>
+                                    );
+                                }
+                            })()}
                         </div>
 
                         <div className="calculated-field">

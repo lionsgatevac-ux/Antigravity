@@ -1,0 +1,10 @@
+{
+    "smtp": {
+        "host": "smtp.gmail.com",
+        "port": 587,
+        "user": "lionsgatevac@gmail.com",
+        "pass": "xatw xewj trvg asrd",
+        "secure": false,
+        "from": "BO-ZSO Hungary kft <lionsgatevac@gmail.com>"
+    }
+}

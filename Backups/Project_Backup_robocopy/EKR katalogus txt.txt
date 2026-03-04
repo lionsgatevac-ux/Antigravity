@@ -1,0 +1,58 @@
+Ügyfél adatok
+
+Ügyfél neve:={{nev}}
+Születési név:={{szuletesnev}}
+Anyja neve:= {{anyjaneve}}
+Lakcím:= {{cim}}
+Beruházási helyszín címe:= {{cim}}
+Telefonszám:= {{telefonszam}}
+E-mail cím:= {{email}}
+
+Ingatlan adatok:
+
+HRSZ:= {{hrsz}}
+Az épület építésének éve: {{epites}}
+típusa: = {{ingatlantipusa}} (ez legyen lenyílós kiválasztós ezekkel az opciókkal: családi ház, sorház, ikerház)
+
+Födém típusa legyen lenyiló vállasztós:
+
+Fa= {{fa}}  vastagsága= {{facm}}
+Acél gerendás= {{acel}}   vastagsága= {{acelcm}}
+Vasbeton gerendás= {{vasbeton}} vastagsága = {{vasbetoncm}}
+Monolit vasbeton ={{monolit}}  vastagsága= {{monolitcm}}
+
+A padlásfödém alatt az alábbi fűtetlen terek találhatóak (kisméretű, fűtött térrel körbevett fűtetlen helyiség figyelmen kívül hagyható pl kamra, WC, közlekedő):
+Garázs: ={{garazs}} mérete {{garazsnm}}
+Zárt naptér, átrium, télikert: = {{bármi}} mérete:= {{bárminm}}
+Egyéb:= {{egyéb}} mérete:= {{egyébnm}}
+
+Fődém szigetelés:
+Utólagos hőszigetelés teljes befoglaló alapterülete (bruttó): = {{brszig}}
+Kémény(ek) összes alapterülete: = {{kemeny}}
+Padlásfeljáró alapterülete (hőszigeteletlen esetben): = {{padlasfeljarominusz}}
+Egyéb levonandó terület: = {{egyeblevonando}}
+Nettó hőszigetelten terület (levonásokkal): = {{nettoszigetelt}}
+
+Számolt értékek:
+
+A Felek a munka ellenértékében:(képlet:(({{nettoszigetelt}}*0,461)*11705 = {{szamoltosszeg}}
+Ird ki betüvel a {{szamoltosszeg}} = {{számoltosszegbetuvel}} 
+{{nettoszigetelt}}*0,461 = {{gj}}
+
+Elvégzett munkálatok:
+
+Kezdés dátum: = {{datum}}
+Munkakezdés ideje: = {{kezdés}}
+Kezdés dátum: = {{datum}}
+Munka befejezés ideje: = {{vege}}
+
+Anyagok:
+
+párazáró fólia: = {{parazarofolia}}
+üveggyapot szigetelés: = {{szigeteles}}
+Páraáteresztő fólia: = {{paraateresztofolia}}
+
+
+
+
+

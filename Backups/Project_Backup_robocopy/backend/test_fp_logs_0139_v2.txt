@@ -1,0 +1,37 @@
+???? Config: Using local development configuration with explicit password.
+Testing floor plan generation for BOZSO-2025-0139...
+??? Database connected successfully
+Executed query {
+  text: 'SELECT p.id as real_project_id, p.contract_number, pd.*, c.full_name as full_name, c.id_number \n' +
+    '             FROM projects p \n' +
+    '             LEFT JOIN project_details pd ON p.id = pd.project_id \n' +
+    '             LEFT JOIN customers c ON pd.customer_id = c.id \n' +
+    '             WHERE p.contract_number = $1',
+  duration: 120,
+  rows: 1
+}
+Resolved internal Project ID: 6309916a-d053-47e2-b60f-2ce5f27a7fbe
+Executed query {
+  text: "SELECT file_path FROM photos WHERE project_id = $1 AND photo_type = 'floor_plan' ORDER BY taken_at DESC LIMIT 1",
+  duration: 3,
+  rows: 1
+}
+Found floor plan at C:\Users\Admin\OneDrive\Asztali g??p\Antigravity\Padl??s f??d??m szigetel??s dokumentum managment\backend\uploads\general\photo-1766409864763-734442351.png
+--- START DOCUMENT GENERATION ---
+Template: kivitelezoi_nyilatkozat
+[DEBUG] Loading template from: C:\Users\Admin\OneDrive\Asztali g??p\Antigravity\Padl??s f??d??m szigetel??s dokumentum managment\templates\kivitelezoi_nyilatkozat.docx
+[DEBUG] Template file size: 2753373 bytes
+Template loaded. Delimiters: [[ ]]
+[DocumentGenerator] GJ is 0, recalculating from net_area 137.50
+[ImageModule] getImage called for tag: alaprajz
+[ImageModule] Base64 tag detected
+[ImageModule] getSize called for tag: alaprajz
+[ImageModule] Dimensions: 1070x600
+[ImageModule] tagName is alaprajz, using maxWidth 600
+[ImageModule] getImage called for tag: alaprajz
+[ImageModule] Base64 tag detected
+[ImageModule] getSize called for tag: alaprajz
+[ImageModule] Dimensions: 1070x600
+[ImageModule] tagName is alaprajz, using maxWidth 600
+Document generated successfully: kivitelezoi_nyilatkozat_BOZSO-2025-0139.docx
+File path: C:\Users\Admin\OneDrive\Asztali g??p\Antigravity\Padl??s f??d??m szigetel??s dokumentum managment\backend\generated\kivitelezoi_nyilatkozat_BOZSO-2025-0139.docx

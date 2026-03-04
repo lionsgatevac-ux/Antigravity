@@ -11,9 +11,13 @@ export const AuthProvider = ({ children }) => {
     const [token, setToken] = useState(localStorage.getItem('token'));
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    // Use relative path for API calls since we have a proxy
+    const API_URL = '/api';
+    // Fallback for direct calls if needed (though proxy is preferred)
+    const DIRECT_API_URL = 'http://localhost:4000/api';
 
     // Set base URL (global axios) - keep for auth calls
-    axios.defaults.baseURL = import.meta.env.PROD ? '' : 'http://localhost:3000';
+    axios.defaults.baseURL = import.meta.env.PROD ? '' : DIRECT_API_URL;
 
     // Configure headers & interceptors
     useEffect(() => {

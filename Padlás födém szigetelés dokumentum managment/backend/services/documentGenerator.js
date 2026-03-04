@@ -79,7 +79,7 @@ class DocumentGenerator {
 
     // Process data to download remote images
     async fetchImagesForTemplate(data) {
-        const imageFields = ['alairasugyfel', 'alairaskivitelezo', 'alaprajz', 'alairas'];
+        const imageFields = ['alairasugyfel', 'alairaskivitelezo', 'alaprajz', 'alaprajzplusz', 'alairas'];
 
         for (const field of imageFields) {
             if (data[field] && typeof data[field] === 'string' && (data[field].startsWith('http://') || data[field].startsWith('https://'))) {
@@ -113,8 +113,35 @@ class DocumentGenerator {
         console.log(`User Role: ${data.owner_role}`);
 
         try {
+            // DEBUG LOGGING START
+            const debugLogPath = path.join(__dirname, '../debug_investigation.log');
+            const appendDebug = (msg) => {
+                const timestamp = new Date().toISOString();
+                try {
+                    fs.appendFileSync(debugLogPath, `${timestamp} - ${msg}\n`);
+                } catch (e) { console.error('Failed to write to debug log:', e); }
+            };
+            appendDebug(`--- NEW REQUEST ---`);
+            appendDebug(`Requested Template: ${templateName}`);
+            appendDebug(`Data Created At Raw: ${data.created_at}`);
+
             // Template selection based on role
             let targetTemplate = templateName;
+
+            // MAP NEW TEMPLATES (2026)
+            // This mapping allows using friendly names in API but specific filenames on disk
+            const templateMap = {
+                'kivitelezesi_szerzodes': '2026kivitelezesi_szerzodes',
+                'atadas_atveteli': '2026 atadas_atveteli',
+                'megallapodas_hem': '2026 megallapodas_hem',
+                'kivitelezoi_nyilatkozat': '2026 Kivitelezoi nyil.jk_v2'
+            };
+
+            if (templateMap[templateName]) {
+                targetTemplate = templateMap[templateName];
+                console.log(`[INFO] Mapped ${templateName} to ${targetTemplate}`);
+                appendDebug(`Mapped to NEW template: ${targetTemplate}`);
+            }
 
             // DATE-BASED VERSIONING LOGIC
             // If the project was created BEFORE 2026-02-01, use the OLD template for kivitelezoi_nyilatkozat
@@ -124,34 +151,46 @@ class DocumentGenerator {
             if (data.created_at) {
                 projectCreatedAt = new Date(data.created_at);
                 console.log(`[DEBUG] Project created at: ${projectCreatedAt.toISOString()}`);
+                appendDebug(`Project Created At Parsed: ${projectCreatedAt.toISOString()}`);
+                appendDebug(`Cutoff Date: ${versionCutoffDate.toISOString()}`);
+                appendDebug(`Is OLD? ${projectCreatedAt < versionCutoffDate}`);
+            } else {
+                appendDebug(`No created_at provided - assuming NEW project`);
             }
 
+            // Override for OLD projects: force back to OLD version if conditions met
             if (templateName === 'kivitelezoi_nyilatkozat' && projectCreatedAt && projectCreatedAt < versionCutoffDate) {
                 targetTemplate = `${templateName}_OLD`;
-                console.log(`[INFO] Old project detected (created before 2026-02-01). Using LEGACY template: ${targetTemplate}`);
+                console.log(`[INFO] Old project detected (created before 2026-02-01). Reverting to LEGACY template: ${targetTemplate}`);
+                appendDebug(`REVERTING TO OLD TEMPLATE: ${targetTemplate}`);
+            } else {
+                appendDebug(`Final Template Selected: ${targetTemplate}`);
             }
 
-            // External user overrides (if applicable - currently only for new projects maybe? Or both?)
-            // Assuming external logic applies on top, or maybe external users didn't exist before?
-            // Let's keep existing logic but be careful not to break the OLD logic.
-            // If it's OLD template, we probably shouldn't append _ext unless _OLD_ext exists.
-            // For now, let's assume OLD projects don't have 'external' role logic mapping to a specific file.
+            // External user overrides
             if (data.owner_role === 'external' && !targetTemplate.includes('_OLD')) {
-                targetTemplate = `${templateName}_ext`;
-                console.log(`External user detected. Using template: ${targetTemplate}`);
+                const extTemplate = `${targetTemplate}_ext`;
+                const extPath = path.join(this.templatesDir, `${extTemplate}.docx`);
+
+                if (fs.existsSync(extPath)) {
+                    targetTemplate = extTemplate;
+                    console.log(`External user detected. Using extended template: ${targetTemplate}`);
+                } else {
+                    console.log(`External user detected but ${extTemplate} not found. Falling back to standard: ${targetTemplate}`);
+                }
             }
 
             // Template path
             const templatePath = path.join(this.templatesDir, `${targetTemplate}.docx`);
 
             if (!fs.existsSync(templatePath)) {
-                // Fallback to default if external template missing? Or error?
-                // User said "csinálj az új regisztrálónak új sablonokat".
-                // I will try to fallback to default if _ext missing, but log warning.
-                if (data.owner_role === 'external' && fs.existsSync(path.join(this.templatesDir, `${templateName}.docx`))) {
-                    console.warn(`External template ${targetTemplate} not found. Falling back to ${templateName}`);
+                // Determine if we can fallback to the requested name itself (e.g. if mapping failed)
+                const fallbackPath = path.join(this.templatesDir, `${templateName}.docx`);
+                if (fs.existsSync(fallbackPath)) {
+                    console.warn(`Template ${targetTemplate} not found. Falling back to requested name: ${templateName}`);
                     targetTemplate = templateName;
                 } else {
+                    console.error(`CRITICAL: Template file not found at ${templatePath}`);
                     throw new Error(`Template not found: ${targetTemplate} (and no fallback)`);
                 }
             }
@@ -244,9 +283,10 @@ class DocumentGenerator {
                         }
 
                         let maxWidth = 200; // Default for other images
-                        if (tagName === 'alaprajz') {
-                            maxWidth = 600; // Increased size for floor plan
-                            console.log('[ImageModule] tagName is alaprajz, using maxWidth 600');
+                        const cleanTagName = tagName.replace('%', '');
+                        if (cleanTagName === 'alaprajz' || cleanTagName === 'alaprajzplusz') {
+                            maxWidth = 600; // Increased size for floor plan and floor plan plus
+                            console.log(`[ImageModule] tagName is ${tagName}, using maxWidth 600`);
                         }
 
                         if (dimensions.width > maxWidth) {
@@ -295,8 +335,8 @@ class DocumentGenerator {
             const padlasTags = foundTags.filter(t => t.includes('padlas') || t.includes('attic') || t.includes('pf_'));
             console.log('🔍 PADLAS RELATED TAGS:', padlasTags);
 
-            // Prepare data with formatting
-            const formattedData = this.prepareData(data);
+            // Prepare and format data for template
+            const formattedData = this.prepareData(data, targetTemplate);
 
             // DOWNLOAD REMOTE IMAGES
             await this.fetchImagesForTemplate(formattedData);
@@ -320,7 +360,9 @@ class DocumentGenerator {
                     // Convert buffer
                     const pdfBuffer = await convertAsync(buf, '.pdf', undefined);
 
-                    const fileName = `${targetTemplate}_${data.contract_number || Date.now()}.pdf`;
+                    // Sanitize filename for safe download
+                    const safeTemplateName = targetTemplate.replace(/[^a-z0-9]/gi, '_');
+                    const fileName = `${safeTemplateName}_${data.contract_number || Date.now()}.pdf`;
                     const filePath = path.join(this.generatedDir, fileName);
                     fs.writeFileSync(filePath, pdfBuffer);
 
@@ -338,7 +380,9 @@ class DocumentGenerator {
             }
 
             // Save file
-            const fileName = `${targetTemplate}_${data.contract_number || Date.now()}.docx`;
+            // Sanitize filename for safe download
+            const safeTemplateName = targetTemplate.replace(/[^a-z0-9]/gi, '_');
+            const fileName = `${safeTemplateName}_${data.contract_number || Date.now()}.docx`;
             const filePath = path.join(this.generatedDir, fileName);
             fs.writeFileSync(filePath, buf);
 
@@ -464,7 +508,7 @@ class DocumentGenerator {
     }
 
     // Prepare and format data for template
-    prepareData(data) {
+    prepareData(data, templateName) {
         console.log('[DEBUG] prepareData called with:', JSON.stringify({
             attic_door_insulated: data.attic_door_insulated,
             padlasfeljaro_szigetelese: data.padlasfeljaro_szigetelese,
@@ -589,6 +633,9 @@ class DocumentGenerator {
             munka_vege: this.formatDate(data.work_end_date),
             vege: this.formatDate(data.work_end_date),
             atadas_datum: this.formatDate(data.handover_date),
+            ora_kezdes: data.work_hour_start || 9,
+            ora_vege: data.work_hour_end || 16,
+            kivitelezes_datuma: this.formatDate(data.execution_date || data.contract_date || new Date()),
 
             // Financial
             szerzodesi_osszeg: this.formatCurrency(data.net_amount),
@@ -689,6 +736,12 @@ class DocumentGenerator {
         if (customerSig) {
             result.alairasugyfel = customerSig;
             // Map generic 'alairas' tag to customer signature as well (for Tamogatas doc)
+            // SAFEGUARD: Do NOT map alairas for megallapodas_hem to prevent base64 text leakage
+            // if the template accidentally contains [[alairas]] (Text) instead of [[%alairas]] (Image)
+            // UPDATE: We fixed the templates with the script, so we can now safely map it.
+            // But let's keep a check: only map if it's NOT megallapodas_hem OR if we are sure it's fixed.
+            // Actually, the plan is to fix the template tags to [%alairas], so we SHOULD map it now.
+            // Reverting the safeguard to allow signature in megallapodas_hem.
             result.alairas = customerSig;
         } else {
             result.alairasugyfel = '';
@@ -727,6 +780,15 @@ class DocumentGenerator {
         } else {
             // Provide 1x1 transparent PNG if no floor plan is present to avoid [[alaprajz]] appearing as text
             result.alaprajz = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+        }
+
+        // Alaprajz Plusz logic
+        const floorPlanPlus = this.cleanValue(data.alaprajzplusz);
+        if (floorPlanPlus) {
+            result.alaprajzplusz = floorPlanPlus;
+        } else {
+            // Provide 1x1 transparent PNG if no second floor plan is present
+            result.alaprajzplusz = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
         }
 
         return result;

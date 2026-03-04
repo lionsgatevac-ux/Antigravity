@@ -1,0 +1,30 @@
+Response length: 390063
+Response start: <?xml version="1.0" encoding="UTF-8"?>
+<xmlszamlavalasz xmlns="http://www.szamlazz.hu/xmlszamlavalas
+XML response detected
+PDF extracted from XML. Length: 288356, Start: %PDF-1.5
+%
+Response length: 390161
+Response start: <?xml version="1.0" encoding="UTF-8"?>
+<xmlszamlavalasz xmlns="http://www.szamlazz.hu/xmlszamlavalas
+XML response detected
+PDF extracted from XML. Length: 288428, Start: %PDF-1.5
+%
+Response length: 390104
+Response start: <?xml version="1.0" encoding="UTF-8"?>
+<xmlszamlavalasz xmlns="http://www.szamlazz.hu/xmlszamlavalas
+XML response detected
+PDF extracted from XML. Length: 288386, Start: %PDF-1.5
+%
+Response length: 389982
+Response start: <?xml version="1.0" encoding="UTF-8"?>
+<xmlszamlavalasz xmlns="http://www.szamlazz.hu/xmlszamlavalas
+XML response detected
+PDF extracted from XML. Length: 288297, Start: %PDF-1.5
+%
+Response length: 389601
+Response start: <?xml version="1.0" encoding="UTF-8"?>
+<xmlszamlavalasz xmlns="http://www.szamlazz.hu/xmlszamlavalas
+XML response detected
+PDF extracted from XML. Length: 288013, Start: %PDF-1.5
+%

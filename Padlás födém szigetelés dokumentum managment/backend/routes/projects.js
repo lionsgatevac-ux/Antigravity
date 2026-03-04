@@ -1,4 +1,5 @@
 const express = require('express');
+console.log('LOADING ROUTES: backend/routes/projects.js');
 const router = express.Router();
 const Project = require('../models/Project');
 const Customer = require('../models/Customer');
@@ -100,7 +101,11 @@ router.post('/', async (req, res, next) => {
             pf_kivul_oromfal: Boolean(details.pf_kivul_oromfal),
             pf_kivul_bonthato: Boolean(details.pf_kivul_bonthato),
             pf_kivul_egyeb: Boolean(details.pf_kivul_egyeb),
-            pf_kivul_egyeb_szoveg: sanitizeString(details.pf_kivul_egyeb_szoveg)
+            pf_kivul_egyeb_szoveg: sanitizeString(details.pf_kivul_egyeb_szoveg),
+            work_hour_start: sanitizeNumeric(details.work_hour_start) || 9,
+            work_hour_end: sanitizeNumeric(details.work_hour_end) || 16,
+            execution_date: details.execution_date || null,
+            manual_quantities: details.manual_quantities || {}
         };
 
         const result = await transaction(async (client) => {
@@ -138,25 +143,125 @@ router.post('/', async (req, res, next) => {
             );
             const newProperty = propertyResult.rows[0];
 
-            // Create project details
+            // Create project details (existing code)
             const detailsResult = await client.query(
                 `INSERT INTO project_details (
                     project_id, customer_id, property_id, 
                     gross_area, chimney_area, attic_door_area, other_deducted_area, 
                     net_area, net_amount, energy_saving_gj, labor_cost, 
-                    hem_value, government_support, insulation_type, 
+                    government_support, insulation_type, 
                     vapor_barrier_type, breathable_membrane_type,
-                    pf_kivul_fodemen, pf_kivul_oromfal, pf_kivul_bonthato, pf_kivul_egyeb, pf_kivul_egyeb_szoveg
+                    pf_kivul_fodemen, pf_kivul_oromfal, pf_kivul_bonthato, pf_kivul_egyeb, pf_kivul_egyeb_szoveg,
+                    work_hour_start, work_hour_end, execution_date
                 )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21) RETURNING *`,
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24) RETURNING *`,
                 [project.id, newCustomer.id, newProperty.id,
                 sanitizedDetails.gross_area, sanitizedDetails.chimney_area, sanitizedDetails.attic_door_area,
                 sanitizedDetails.other_deducted_area, sanitizedDetails.net_area, sanitizedDetails.net_amount,
                 sanitizedDetails.energy_saving_gj, sanitizedDetails.labor_cost, sanitizedDetails.hem_value,
                 sanitizedDetails.government_support, sanitizedDetails.insulation_type,
                 sanitizedDetails.vapor_barrier_type, sanitizedDetails.breathable_membrane_type,
-                sanitizedDetails.pf_kivul_fodemen, sanitizedDetails.pf_kivul_oromfal, sanitizedDetails.pf_kivul_bonthato, sanitizedDetails.pf_kivul_egyeb, sanitizedDetails.pf_kivul_egyeb_szoveg]
+                sanitizedDetails.pf_kivul_fodemen, sanitizedDetails.pf_kivul_oromfal, sanitizedDetails.pf_kivul_bonthato,
+                sanitizedDetails.pf_kivul_egyeb, sanitizedDetails.pf_kivul_egyeb_szoveg,
+                sanitizedDetails.work_hour_start, sanitizedDetails.work_hour_end, sanitizedDetails.execution_date]
             );
+
+            // --- AUTO-DEDUCT MATERIALS FROM USER STOCK ---
+            const materialsToDeduct = [];
+            const netArea = Number(sanitizedDetails.net_area) || 0;
+            console.log(`[AutoDeduct] Starting. NetArea: ${netArea}`);
+
+            if (netArea > 0) {
+                // Collect material names to resolve
+                const materialNames = [
+                    sanitizedDetails.insulation_type,
+                    sanitizedDetails.vapor_barrier_type,
+                    sanitizedDetails.breathable_membrane_type
+                ].filter(name => name && name.trim() !== '');
+
+                console.log(`[AutoDeduct] Material Names:`, materialNames);
+
+                if (materialNames.length > 0) {
+                    // 1. Fetch Material Metadata (ID, coverage)
+                    const matQuery = await client.query(
+                        'SELECT id, name, coverage, unit FROM materials WHERE name = ANY($1)',
+                        [materialNames]
+                    );
+
+                    const materialMap = new Map(matQuery.rows.map(m => [m.name, m]));
+                    const manualQuantities = sanitizedDetails.manual_quantities;
+                    console.log(`[AutoDeduct] Manual Quantities:`, manualQuantities);
+
+                    // 2. Calculate Quantities
+                    // Helper to push to list
+                    const pushDeduction = (matName, categoryKey) => {
+                        console.log(`[AutoDeduct] Processing ${categoryKey}: ${matName}`);
+                        const mat = materialMap.get(matName);
+                        if (mat) {
+                            let quantity = 0;
+                            // Check manual quantity first
+                            if (manualQuantities && manualQuantities[categoryKey] && !isNaN(manualQuantities[categoryKey]) && Number(manualQuantities[categoryKey]) > 0) {
+                                quantity = Number(manualQuantities[categoryKey]);
+                                console.log(`[AutoDeduct] Used manual quantity: ${quantity}`);
+                            }
+                            // Fallback to coverage calculation
+                            else if (mat.coverage && mat.coverage > 0) {
+                                quantity = Math.ceil(netArea / mat.coverage);
+                                console.log(`[AutoDeduct] Calculated quantity: ${quantity} (Coverage: ${mat.coverage})`);
+                            } else {
+                                console.warn(`[AutoDeduct] coverage missing and no manual qty for ${matName}, skipping auto-deduction`);
+                                return;
+                            }
+
+                            if (quantity > 0) {
+                                materialsToDeduct.push({ ...mat, quantity });
+                            }
+                        } else {
+                            console.warn(`[AutoDeduct] Material not found in Map: ${matName}`);
+                        }
+                    };
+
+                    pushDeduction(sanitizedDetails.insulation_type, 'insulation');
+                    pushDeduction(sanitizedDetails.vapor_barrier_type, 'vapor_barrier');
+                    pushDeduction(sanitizedDetails.breathable_membrane_type, 'breathable_membrane');
+
+                    console.log(`[AutoDeduct] Materials to deduct:`, materialsToDeduct);
+
+                    // 3. Check Stock and Deduct
+                    for (const item of materialsToDeduct) {
+                        console.log(`[AutoDeduct] Deducting ${item.quantity} of ${item.name}`);
+                        // Check User Stock (Copied logic from inventory.js)
+                        const stockRes = await client.query(`
+                            SELECT 
+                                COALESCE(SUM(CASE 
+                                    WHEN t.recipient_user_id = $1 AND t.status = 'COMPLETED' AND t.project_id IS NULL THEN t.quantity 
+                                    WHEN t.created_by = $1 AND t.transaction_type = 'USAGE' THEN -t.quantity 
+                                    ELSE 0 
+                                END), 0) as current_stock
+                            FROM material_transactions t
+                            WHERE t.material_id = $2
+                        `, [req.user.id, item.id]);
+
+                        const currentStock = parseInt(stockRes.rows[0]?.current_stock || 0);
+
+                        if (currentStock < item.quantity) {
+                            console.warn(`[AutoDeduct] Negative stock warning for ${item.name}: Need ${item.quantity}, have ${currentStock}. Proceeding anyway.`);
+                            // throw new Error(...) - Removed per user request
+                        }
+
+                        // Deduct
+                        await client.query(
+                            `INSERT INTO material_transactions 
+                            (material_id, quantity_change, quantity, transaction_type, project_id, status, notes, created_by) 
+                            VALUES ($1, 0, $2, 'USAGE', $3, 'COMPLETED', $4, $5)`,
+                            [item.id, item.quantity, project.id, 'Automatikus levonás projekt létrehozáskor', req.user.id]
+                        );
+
+                        console.log(`[AutoDeduct] Deducted ${item.quantity} of ${item.name} for project ${project.contract_number}`);
+                    }
+                }
+            }
+            // ---------------------------------------------
 
             return {
                 project,
@@ -215,6 +320,7 @@ router.delete('/:id', async (req, res, next) => {
 router.put('/:id/full_update', async (req, res, next) => {
     try {
         const projectId = req.params.id;
+        console.log(`[DEBUG] Full update for project ${projectId}`);
         const { customer, property, details } = req.body;
 
         // Sanitize numeric fields - convert empty strings to null
@@ -263,7 +369,10 @@ router.put('/:id/full_update', async (req, res, next) => {
             pf_kivul_oromfal: Boolean(details.pf_kivul_oromfal),
             pf_kivul_bonthato: Boolean(details.pf_kivul_bonthato),
             pf_kivul_egyeb: Boolean(details.pf_kivul_egyeb),
-            pf_kivul_egyeb_szoveg: sanitizeString(details.pf_kivul_egyeb_szoveg)
+            pf_kivul_egyeb_szoveg: sanitizeString(details.pf_kivul_egyeb_szoveg),
+            work_hour_start: sanitizeNumeric(details.work_hour_start) || 9,
+            work_hour_end: sanitizeNumeric(details.work_hour_end) || 16,
+            execution_date: details.execution_date || null
         };
 
         const result = await transaction(async (client) => {
@@ -327,8 +436,9 @@ router.put('/:id/full_update', async (req, res, next) => {
                     hem_value = $9, government_support = $10, insulation_type = $11,
                     vapor_barrier_type = $12, breathable_membrane_type = $13,
                     pf_kivul_fodemen = $14, pf_kivul_oromfal = $15, pf_kivul_bonthato = $16,
-                    pf_kivul_egyeb = $17, pf_kivul_egyeb_szoveg = $18, attic_door_insulated = $19
-                 WHERE project_id = $20
+                    pf_kivul_egyeb = $17, pf_kivul_egyeb_szoveg = $18, attic_door_insulated = $19,
+                    work_hour_start = $20, work_hour_end = $21, execution_date = $22
+                 WHERE project_id = $23
                  RETURNING *`,
                 [sanitizedDetails.gross_area, sanitizedDetails.chimney_area, sanitizedDetails.attic_door_area,
                 sanitizedDetails.other_deducted_area, sanitizedDetails.net_area, sanitizedDetails.net_amount,
@@ -337,6 +447,7 @@ router.put('/:id/full_update', async (req, res, next) => {
                 sanitizedDetails.vapor_barrier_type, sanitizedDetails.breathable_membrane_type,
                 sanitizedDetails.pf_kivul_fodemen, sanitizedDetails.pf_kivul_oromfal, sanitizedDetails.pf_kivul_bonthato,
                 sanitizedDetails.pf_kivul_egyeb, sanitizedDetails.pf_kivul_egyeb_szoveg, Boolean(details.attic_door_insulated),
+                sanitizedDetails.work_hour_start, sanitizedDetails.work_hour_end, sanitizedDetails.execution_date,
                     projectId]
             );
 
@@ -723,6 +834,11 @@ router.post('/:id/remote-request', async (req, res, next) => {
             floorPlanBase64 = project.floor_plan_url; // Use URL directly
         }
 
+        let floorPlanPlusBase64 = '';
+        if (project.floor_plan_plus_url) {
+            floorPlanPlusBase64 = project.floor_plan_plus_url;
+        }
+
         const templateData = {
             contract_number: project.contract_number,
             contract_date: new Date(),
@@ -775,7 +891,8 @@ router.post('/:id/remote-request', async (req, res, next) => {
             breathable_membrane_type: project.breathable_membrane_type,
             customer_signature_data: project.customer_signature_data,
             contractor_signature_data: project.contractor_signature_data,
-            alaprajz: floorPlanBase64
+            alaprajz: floorPlanBase64,
+            alaprajzplusz: floorPlanPlusBase64
         };
 
         // Generate Documents

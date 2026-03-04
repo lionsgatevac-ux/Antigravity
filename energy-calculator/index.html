@@ -1,0 +1,367 @@
+﻿<!DOCTYPE html>
+<html lang="hu">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Energiamegtakarítás Kalkulátor | Tanúsított Energiahatékonyság</title>
+    <meta name="description"
+        content="Számítsa ki a tanúsított energiamegtakarítást padlásfödém szigeteléssel és hőszivattyú telepítéssel az EKR katalógus módszertan alapján">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-content">
+                <h1 class="header-title">Energiamegtakarítás Kalkulátor</h1>
+                <p class="header-subtitle">Tanúsított energiahatékonysági számítások az EKR katalógus alapján</p>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="tabs">
+                <button class="tab-button active" data-tab="attic">
+                    <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                    </svg>
+                    Padlásfödém Szigetelés
+                </button>
+                <button class="tab-button" data-tab="heatpump">
+                    <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    Hőszivattyú
+                </button>
+                <button class="tab-button" data-tab="splitclimate">
+                    <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path
+                            d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3">
+                        </path>
+                    </svg>
+                    Split Klíma
+                </button>
+            </div>
+
+            <!-- Padlásfödém Szigetelés Kalkulátor -->
+            <div class="tab-content active" id="attic-tab">
+                <div class="calculator-card">
+                    <div class="card-header">
+                        <h2 class="card-title">Padlásfödém Szigetelés Kalkulátor</h2>
+                        <p class="card-description">Számítsa ki az energiamegtakarítást padlásfödém szigeteléssel</p>
+                    </div>
+
+                    <form class="calculator-form" id="attic-form">
+                        <div class="form-group">
+                            <label for="attic-area" class="form-label">
+                                Szigetelt Terület (m²)
+                                <span class="tooltip" data-tooltip="A szigetelendő padlásfödém teljes területe">ℹ</span>
+                            </label>
+                            <input type="number" id="attic-area" class="form-input" placeholder="pl. 100" min="1"
+                                step="0.01" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="attic-type" class="form-label">
+                                Szerkezet Típusa
+                                <span class="tooltip"
+                                    data-tooltip="Padlásfödém: 0.461 szorzó, Lapostető: 0.6 szorzó">ℹ</span>
+                            </label>
+                            <select id="attic-type" class="form-select">
+                                <option value="0.461">Padlásfödém - Vasbeton/Fa</option>
+                                <option value="0.6">Lapostető - Vasbeton</option>
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Megtakarítás Számítása</button>
+                    </form>
+
+                    <div class="results" id="attic-results" style="display: none;">
+                        <div class="results-header">
+                            <h3 class="results-title">Számítási Eredmények</h3>
+                        </div>
+                        <div class="results-content">
+                            <div class="result-item primary">
+                                <span class="result-label">Éves Energiamegtakarítás</span>
+                                <span class="result-value" id="attic-savings">0</span>
+                                <span class="result-unit">GJ/év</span>
+                            </div>
+                            <div class="result-item secondary">
+                                <span class="result-label">Egyenérték kWh-ban</span>
+                                <span class="result-value" id="attic-kwh">0</span>
+                                <span class="result-unit">kWh/év</span>
+                            </div>
+                            <div class="calculation-details">
+                                <h4 class="details-title">Számítás Részletei</h4>
+                                <div class="detail-row">
+                                    <span>Formula:</span>
+                                    <span class="formula">Q = A × Szorzó</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span>Terület (A):</span>
+                                    <span id="attic-detail-area">0 m²</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span>Szorzó:</span>
+                                    <span id="attic-detail-factor">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hőszivattyú Kalkulátor -->
+            <div class="tab-content" id="heatpump-tab">
+                <div class="calculator-card">
+                    <div class="card-header">
+                        <h2 class="card-title">Hőszivattyú Kalkulátor</h2>
+                        <p class="card-description">Számítsa ki az energiamegtakarítást gázkazán hőszivattyúra
+                            cseréjével
+                        </p>
+                    </div>
+
+                    <form class="calculator-form" id="heatpump-form">
+                        <div class="form-section">
+                            <h3 class="section-title">Épület Adatai</h3>
+
+                            <div class="form-group">
+                                <label for="building-type" class="form-label">
+                                    Épület Típusa
+                                    <span class="tooltip"
+                                        data-tooltip="Válassza ki az épület típusát a pontos energiaigény értékekhez">ℹ</span>
+                                </label>
+                                <select id="building-type" class="form-select" required>
+                                    <option value="">Válasszon épülettípust...</option>
+                                    <option value="CSH">Családi Ház</option>
+                                    <option value="TH<10">Társasház <10 lakás</option>
+                                    <option value="TH>10">Társasház >10 lakás</option>
+                                    <option value="IÉ">Irodaépület</option>
+                                    <option value="OÉ">Oktatási Épület</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="heated-area" class="form-label">
+                                    Fűtött Padlófelület (m²)
+                                </label>
+                                <input type="number" id="heated-area" class="form-input" placeholder="pl. 150" min="10"
+                                    step="0.1" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Rendszer Típusa</label>
+                                <div class="radio-group">
+                                    <label class="radio-label">
+                                        <input type="radio" name="system-type" value="heating-only" checked>
+                                        <span>Csak Fűtés</span>
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="system-type" value="heating-hw">
+                                        <span>Fűtés + Melegvíz</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h3 class="section-title">Régi Kazán Adatai</h3>
+
+                            <div class="form-group">
+                                <label for="old-boiler-type" class="form-label">
+                                    Régi Kazán Típusa
+                                </label>
+                                <select id="old-boiler-type" class="form-select" required>
+                                    <option value="">Válasszon kazántípust...</option>
+                                    <option value="condensing">Kondenzációs Gázkazán</option>
+                                    <option value="old">Régi Gázkazán</option>
+                                </select>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="boiler-power" class="form-label">
+                                        Kazán Teljesítménye (kW)
+                                    </label>
+                                    <input type="number" id="boiler-power" class="form-input" placeholder="pl. 25"
+                                        min="1" step="0.1" required>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="boiler-age" class="form-label">
+                                        Kazán Kora (év)
+                                    </label>
+                                    <input type="number" id="boiler-age" class="form-input" placeholder="pl. 15" min="0"
+                                        max="50" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h3 class="section-title">Új Hőszivattyú Adatai</h3>
+
+                            <div class="form-group">
+                                <label for="hp-type" class="form-label">
+                                    Hőszivattyú Típusa
+                                    <span class="tooltip"
+                                        data-tooltip="Alacsony hőm.: 35°C kimenet, Közepes hőm.: 55°C kimenet">ℹ</span>
+                                </label>
+                                <select id="hp-type" class="form-select" required>
+                                    <option value="">Válasszon hőszivattyú típust...</option>
+                                    <option value="low-water">Alacsony Hőmérsékletű Víz-Víz</option>
+                                    <option value="medium-water">Közepes Hőmérsékletű Víz-Víz</option>
+                                    <option value="low-air">Alacsony Hőmérsékletű Levegő-Víz</option>
+                                    <option value="medium-air">Közepes Hőmérsékletű Levegő-Víz</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="scop" class="form-label">
+                                    Szezonális COP (SCOP)
+                                    <span class="tooltip"
+                                        data-tooltip="A gyártói adatlapról. Tipikus értékek: 3.0-6.0">ℹ</span>
+                                </label>
+                                <input type="number" id="scop" class="form-input" placeholder="pl. 4.5" min="2.5"
+                                    max="7" step="0.01" required>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Megtakarítás Számítása</button>
+                    </form>
+
+                    <div class="results" id="heatpump-results" style="display: none;">
+                        <div class="results-header">
+                            <h3 class="results-title">Számítási Eredmények</h3>
+                            <div class="scenario-badge" id="scenario-badge"></div>
+                        </div>
+                        <div class="results-content">
+                            <div class="result-item primary">
+                                <span class="result-label">Éves Energiamegtakarítás</span>
+                                <span class="result-value" id="hp-savings">0</span>
+                                <span class="result-unit">GJ/év</span>
+                            </div>
+                            <div class="result-item secondary">
+                                <span class="result-label">Egyenérték kWh-ban</span>
+                                <span class="result-value" id="hp-kwh">0</span>
+                                <span class="result-unit">kWh/év</span>
+                            </div>
+                            <div class="calculation-details">
+                                <h4 class="details-title">Számítás Részletei</h4>
+                                <div class="detail-row">
+                                    <span>Épület Típusa:</span>
+                                    <span id="hp-detail-building">-</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span>Fűtött Terület:</span>
+                                    <span id="hp-detail-area">0 m²</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span>Fűtési Igény (q_F):</span>
+                                    <span id="hp-detail-qf">0 kWh/m²·a</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span>Melegvíz Igény (q_HMV):</span>
+                                    <span id="hp-detail-qhmv">0 kWh/m²·a</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span>Régi Rendszer Tényező (k_regi):</span>
+                                    <span id="hp-detail-kregi">0</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span>Új Rendszer Tényező (k_uj):</span>
+                                    <span id="hp-detail-kuj">0</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span>Referencia Tényező (k_ref):</span>
+                                    <span id="hp-detail-kref">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Split Klíma Kalkulátor -->
+            <div class="tab-content" id="splitclimate-tab">
+                <div class="calculator-card">
+                    <div class="card-header">
+                        <h2 class="card-title">Split Klíma Kalkulátor</h2>
+                        <p class="card-description">Számítsa ki az energiamegtakarítást új split klíma telepítésével
+                            (EKR 2.10)</p>
+                    </div>
+
+                    <form class="calculator-form" id="split-form">
+                        <div class="form-group">
+                            <label for="split-power" class="form-label">
+                                Névleges Hűtési Teljesítmény (kW)
+                                <span class="tooltip"
+                                    data-tooltip="A kültéri egység névleges hűtési kapacitása">ℹ</span>
+                            </label>
+                            <input type="number" id="split-power" class="form-input" placeholder="pl. 3.5" min="0.5"
+                                max="12" step="0.1" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="split-seer" class="form-label">
+                                Szezonális Hűtési Hatékonyság (SEER)
+                                <span class="tooltip"
+                                    data-tooltip="Az új berendezés SEER értéke az energiacímkéről">ℹ</span>
+                            </label>
+                            <input type="number" id="split-seer" class="form-input" placeholder="pl. 6.5" min="4.0"
+                                max="10.0" step="0.1" required>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Megtakarítás Számítása</button>
+                    </form>
+
+                    <div class="results" id="split-results" style="display: none;">
+                        <div class="results-header">
+                            <h3 class="results-title">Számítási Eredmények</h3>
+                        </div>
+                        <div class="results-content">
+                            <div class="result-item primary">
+                                <span class="result-label">Éves Energiamegtakarítás</span>
+                                <span class="result-value" id="split-savings">0</span>
+                                <span class="result-unit">GJ/év</span>
+                            </div>
+                            <div class="result-item secondary">
+                                <span class="result-label">Egyenérték kWh-ban</span>
+                                <span class="result-value" id="split-kwh">0</span>
+                                <span class="result-unit">kWh/év</span>
+                            </div>
+                            <div class="calculation-details">
+                                <h4 class="details-title">Számítás Részletei</h4>
+                                <div class="detail-row">
+                                    <span>Hűtési Teljesítmény:</span>
+                                    <span id="split-detail-power">0 kW</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span>Hűtési Óraszám:</span>
+                                    <span>350 óra/év</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span>Referencia SEER:</span>
+                                    <span id="split-detail-ref-seer">0</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span>Új SEER:</span>
+                                    <span id="split-detail-new-seer">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        <footer class='footer'>
+            <p class='footer-text'>Az EKR katalógus (Magyar Energiahatékonysági Katalógus) módszertana alapján</p>
+        </footer>
+    </div>
+    <script src='script.js'></script>
+</body>
+
+</html>

@@ -1,0 +1,4 @@
+scrapy
+pandas
+openpyxl
+duckduckgo-search

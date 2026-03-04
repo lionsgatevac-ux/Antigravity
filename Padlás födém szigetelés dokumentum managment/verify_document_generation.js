@@ -2,7 +2,7 @@
 
 
 async function verify() {
-    const API_URL = 'http://localhost:3000/api';
+    const API_URL = 'http://localhost:4000/api';
 
     try {
         // 1. Get Projects

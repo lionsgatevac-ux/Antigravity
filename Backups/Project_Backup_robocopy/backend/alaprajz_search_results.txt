@@ -1,0 +1,3 @@
+Searching for "alaprajz" in 4 templates...
+[FOUND] kivitelezoi_nyilatkozat.docx
+  -> Clean tag found: [[%alaprajz]]

@@ -8,4 +8,15 @@ backend/uploads/
 backend/generated/
 tmp/
 temp/
+*.log
+*.txt
+*.zip
+*.bak
+*.docx
+!templates/*.docx
+.gemini/
+.agents/
+.agent/
+node_modules/
+**/node_modules/
 

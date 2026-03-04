@@ -23,6 +23,23 @@ const errorHandler = (err, req, res, next) => {
     }
 
     // Send error response
+    try {
+        const fs = require('fs');
+        const path = require('path');
+        const logPath = path.join(__dirname, '..', 'backend_error.json');
+        const errorLog = {
+            timestamp: new Date().toISOString(),
+            message: message,
+            stack: err.stack,
+            type: err.name || 'UNKNOWN_ERROR',
+            url: req.originalUrl,
+            method: req.method
+        };
+        fs.writeFileSync(logPath, JSON.stringify(errorLog, null, 2));
+    } catch (e) {
+        console.error('Failed to write error log:', e);
+    }
+
     res.status(statusCode).json({
         success: false,
         error: {

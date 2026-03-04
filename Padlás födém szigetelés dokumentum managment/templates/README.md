@@ -22,7 +22,7 @@ Ez a könyvtár tartalmazza a dokumentum sablonokat, amelyeket a rendszer kitöl
 
 ### Placeholder Szintaxis
 
-```
+```text
 {{placeholder_neve}}
 ```
 
@@ -38,7 +38,7 @@ Ez a könyvtár tartalmazza a dokumentum sablonokat, amelyeket a rendszer kitöl
 
 ### Kivitelező Adatok (Fix - BO-ZSO Hungary Kft)
 
-```
+```text
 {{contractor_name}}              - BO-ZSO Hungary Kft
 {{contractor_address}}           - 2133 Sződliget HRSZ 1225/1
 {{contractor_tax_number}}        - 27030110213
@@ -55,7 +55,7 @@ Ez a könyvtár tartalmazza a dokumentum sablonokat, amelyeket a rendszer kitöl
 
 ### Projekt Adatok
 
-```
+```text
 {{contract_number}}              - BOZSO-2025-0001
 {{contract_date}}                - 2025.01.15.
 {{location}}                     - Sződliget
@@ -63,7 +63,7 @@ Ez a könyvtár tartalmazza a dokumentum sablonokat, amelyeket a rendszer kitöl
 
 ### Ügyfél Adatok
 
-```
+```text
 {{customer_name}}                - Teljes név
 {{customer_birth_name}}          - Születési név
 {{customer_mother_name}}         - Anyja neve
@@ -75,7 +75,7 @@ Ez a könyvtár tartalmazza a dokumentum sablonokat, amelyeket a rendszer kitöl
 
 ### Ingatlan Adatok
 
-```
+```text
 {{property_address_full}}        - 1234 Budapest, Fő utca 1.
 {{hrsz}}                         - 12345/6
 {{building_year}}                - 1990
@@ -86,7 +86,7 @@ Ez a könyvtár tartalmazza a dokumentum sablonokat, amelyeket a rendszer kitöl
 
 ### Műszaki Adatok
 
-```
+```text
 {{gross_area}}                   - 120.50
 {{chimney_area}}                 - 2.00
 {{attic_door_area}}              - 1.50
@@ -98,7 +98,7 @@ Ez a könyvtár tartalmazza a dokumentum sablonokat, amelyeket a rendszer kitöl
 
 ### Dátumok
 
-```
+```text
 {{work_start_date}}              - 2025.01.20. 08:00
 {{work_end_date}}                - 2025.01.22. 16:00
 {{handover_date}}                - 2025.01.23.
@@ -106,7 +106,7 @@ Ez a könyvtár tartalmazza a dokumentum sablonokat, amelyeket a rendszer kitöl
 
 ### Pénzügyi Adatok
 
-```
+```text
 {{net_amount}}                   - 936 000 Ft
 {{net_amount_words}}             - kilencszázharminchatezer forint
 {{labor_cost}}                   - 200 000 Ft
@@ -118,7 +118,7 @@ Ez a könyvtár tartalmazza a dokumentum sablonokat, amelyeket a rendszer kitöl
 
 ### Anyagok
 
-```
+```text
 [[parazarofolia]]                - Párazáró fólia
 [[szigetsles]]                   - Üveggyapot / Kőzetgyapot / Fújt szigetelés
 [[paraateresztofolia]]           - Páraáteresztő fólia
@@ -126,7 +126,7 @@ Ez a könyvtár tartalmazza a dokumentum sablonokat, amelyeket a rendszer kitöl
 
 ### Egyéb
 
-```
+```text
 {{attic_door_insulated}}         - IGEN / NEM
 ```
 
@@ -136,7 +136,7 @@ Ez a könyvtár tartalmazza a dokumentum sablonokat, amelyeket a rendszer kitöl
 
 ### Anyagok Táblázat
 
-```
+```handlebars
 {{#materials}}
 | {{material_type}} | {{specification}} | {{quantity}} {{unit}} |
 {{/materials}}
@@ -146,7 +146,7 @@ Ez a könyvtár tartalmazza a dokumentum sablonokat, amelyeket a rendszer kitöl
 
 Hozz létre egy táblázatot, majd a sorokba írd:
 
-```
+```markdown
 | Anyag típusa | Specifikáció | Mennyiség |
 |{{material_type}}|{{specification}}|{{quantity}} {{unit}}|
 ```
@@ -182,7 +182,7 @@ Sablon konverzió után ellenőrizd:
 
 Ha valami csak bizonyos esetekben jelenjen meg:
 
-```
+```handlebars
 {{#if attic_door_insulated}}
 A padlásfeljáró utólagos hőszigetelése elkészült: IGEN
 {{else}}
@@ -194,7 +194,7 @@ A padlásfeljáró utólagos hőszigetelése elkészült: NEM
 
 Ha egy mező üres lehet, használj alapértelmezett értéket:
 
-```
+```text
 Telefon: {{customer_phone}}
 ```
 
