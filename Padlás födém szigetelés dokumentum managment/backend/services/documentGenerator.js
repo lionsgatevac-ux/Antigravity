@@ -627,15 +627,21 @@ class DocumentGenerator {
 
             // Dates
             szerzodeskotes: this.formatDate(data.contract_date || new Date()),
-            datum: this.formatDate(data.contract_date || new Date()),
+            datum: this.formatDate(data.execution_date || data.contract_date || new Date()),
             munka_kezdete: this.formatDate(data.work_start_date),
             kezdes: this.formatDate(data.work_start_date),
             munka_vege: this.formatDate(data.work_end_date),
             vege: this.formatDate(data.work_end_date),
             atadas_datum: this.formatDate(data.handover_date),
-            ora_kezdes: data.work_hour_start || 9,
-            ora_vege: data.work_hour_end || 16,
+
+            // New time and execution date fields (supporting both space and underscore)
+            ora_kezdes: (data.work_hour_start || 9) + " óra",
+            "ora kezdes": (data.work_hour_start || 9) + " óra",
+            ora_vege: (data.work_hour_end || 16) + " óra",
+            "ora vege": (data.work_hour_end || 16) + " óra",
             kivitelezes_datuma: this.formatDate(data.execution_date || data.contract_date || new Date()),
+            "kivitelezes datuma": this.formatDate(data.execution_date || data.contract_date || new Date()),
+            "kivitelezés dátuma": this.formatDate(data.execution_date || data.contract_date || new Date()),
 
             // Financial
             szerzodesi_osszeg: this.formatCurrency(data.net_amount),
