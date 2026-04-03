@@ -1,23 +1,53 @@
 # Use Node.js LTS
-FROM node:18-slim
+FROM node:20-slim
 
-# Install system dependencies (LibreOffice, fonts)
-# Install system dependencies (LibreOffice, fonts)
+# Install system dependencies (Puppeteer/Chromium dependencies)
 RUN apt-get update && apt-get install -y \
-    fontconfig \
-    libreoffice \
-    default-jre \
+    fonts-liberation \
+    libasound2 \
+    libatk-bridge2.0-0 \
+    libatk1.0-0 \
+    libc6 \
+    libcairo2 \
+    libcups2 \
+    libdbus-1-3 \
+    libexpat1 \
+    libfontconfig1 \
+    libgbm1 \
+    libgcc1 \
+    libgdk-pixbuf2.0-0 \
+    libglib2.0-0 \
+    libgtk-3-0 \
+    libnspr4 \
+    libnss3 \
+    libpango-1.0-0 \
+    libpangocairo-1.0-0 \
+    libstdc++6 \
+    libx11-6 \
+    libx11-xcb1 \
+    libxcb1 \
+    libxcomposite1 \
+    libxcursor1 \
+    libxdamage1 \
+    libxext6 \
+    libxfixes3 \
+    libxi6 \
+    libxrandr2 \
+    libxrender1 \
+    libxss1 \
+    libxtst6 \
+    lsb-release \
+    wget \
+    xdg-utils \
     && rm -rf /var/lib/apt/lists/*
 
 # WORKDIR ROOT
 WORKDIR /app
 
-# --- FRONTEND BUILD ---
-WORKDIR /app/frontend
-COPY frontend/package*.json ./
-RUN npm install
-COPY frontend/ .
-RUN npm run build
+# --- FRONTEND (Pre-built) ---
+# Skip build in container, use local dist
+WORKDIR /app
+COPY frontend/dist ./frontend/dist
 
 # --- BACKEND SETUP ---
 WORKDIR /app/backend

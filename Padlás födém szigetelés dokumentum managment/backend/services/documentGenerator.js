@@ -92,19 +92,23 @@ class DocumentGenerator {
 
     // Generate document from template
     async generate(templateName, data, format = 'docx') {
-        // DEBUG: Redirect console output to file
-        const logFile = fs.createWriteStream(path.join(__dirname, '../debug_console.log'), { flags: 'a' });
-        const originalLog = console.log;
-        const originalError = console.error;
-
-        console.log = function (...args) {
-            logFile.write(new Date().toISOString() + ' [INFO] ' + args.join(' ') + '\n');
-            originalLog.apply(console, args);
-        };
-        console.error = function (...args) {
-            logFile.write(new Date().toISOString() + ' [ERROR] ' + args.join(' ') + '\n');
-            originalError.apply(console, args);
-        };
+        // DEBUG: Redirect console output to file safely
+        const util = require('util');
+        if (!console._isOverriddenForDebug) {
+            const logFile = fs.createWriteStream(path.join(__dirname, '../debug_console.log'), { flags: 'a' });
+            const originalLog = console.log;
+            const originalError = console.error;
+    
+            console.log = function (...args) {
+                logFile.write(new Date().toISOString() + ' [INFO] ' + util.format(...args) + '\n');
+                originalLog.apply(console, args);
+            };
+            console.error = function (...args) {
+                logFile.write(new Date().toISOString() + ' [ERROR] ' + util.format(...args) + '\n');
+                originalError.apply(console, args);
+            };
+            console._isOverriddenForDebug = true;
+        }
 
         console.log('--- START DOCUMENT GENERATION ---');
         console.time('FullGenerationTime'); // MEASURE TIME
@@ -351,22 +355,222 @@ class DocumentGenerator {
             });
 
             if (format === 'pdf') {
-                console.log('[DocumentGenerator] Format is PDF, converting DOCX using LibreOffice...');
-                const libre = require('libreoffice-convert');
-                const util = require('util');
-                const convertAsync = util.promisify(libre.convert);
-
                 try {
-                    // Convert buffer
-                    const pdfBuffer = await convertAsync(buf, '.pdf', undefined);
+                    console.log(`[DocumentGenerator] Starting Puppeteer + Mammoth conversion for ${targetTemplate}...`);
+                    const cheerio = require('cheerio');
+                    const mammoth = require('mammoth');
+                    const puppeteer = require('puppeteer');
 
-                    // Sanitize filename for safe download
+                    // 1. Convert DOCX to HTML using mammoth with explicit style mapping
+                    const options = {
+                        styleMap: [
+                            "p[style-name='Title'] => h1:fresh",
+                            "p[style-name='Heading 1'] => p:fresh",
+                            "p[style-name='Heading 2'] => p:fresh",
+                            "p[style-name='Heading 3'] => p:fresh",
+                            "p[style-name='Heading 4'] => p:fresh"
+                        ]
+                    };
+                    const result = await mammoth.convertToHtml({ buffer: buf }, options);
+                    let htmlContent = result.value;
+
+                    // Post-process HTML with Cheerio
+                    htmlContent = htmlContent.replace(/\t/g, '<span style="display:inline-block; width: 30pt;"></span>');
+                    const $ = cheerio.load(htmlContent, null, false);
+
+                    // 1. Táblázatok osztályozása és tisztítási logika
+                    $('table').each((i, el) => {
+                        const text = $(el).text();
+                        if (text.includes('Rétegrend') || text.includes('Építőanyag') || text.includes('Megnevezés') || text.includes('Mennyiség') || text.includes('KIINDULÓ ÁLLAPOT')) {
+                            // Felhasználói kérés: minden technikai adatot távolítsunk el
+                            $(el).remove();
+                        } else {
+                            $(el).addClass('layout-table');
+                        }
+                    });
+
+                    // 2. Kis képek eltávolítása (aláírások, bélyegzők) — nagy képek (alaprajz) megtartása
+                    $('img').each((i, el) => {
+                        const src = $(el).attr('src') || '';
+                        // Floor plan images have large base64 data (>10KB), signatures/stamps are small
+                        if (src.startsWith('data:image/') && src.length > 10000) {
+                            $(el).addClass('floor-plan-img');
+                            $(el).css({
+                                'max-width': '100%',
+                                'height': 'auto',
+                                'display': 'block',
+                                'margin': '12pt auto'
+                            });
+                        } else {
+                            $(el).remove();
+                        }
+                    });
+
+                    // 3. Technikai szövegek és üres fejlécek eltávolítása
+                    $('p, h1, h2, h3').each((i, el) => {
+                        const text = $(el).text().trim();
+                        // Aláírási helyek, technikai szekciók és maradék adatok törlése
+                        if (
+                            text.includes('KIINDULÓ ÁLLAPOT') || 
+                            text.includes('ZÁRÓ ÁLLAPOT') || 
+                            text.includes('Fűtetlen tér') ||
+                            text.includes('Műszaki számítások') ||
+                            text.includes('Elvégzett munkálatok és műszaki tartalom') ||
+                            text.includes('A beépített anyagokra') ||
+                            text.includes('..') || // Aláírási pontsorok
+                            text === 'Végeztünk' ||
+                            text.includes('Utólagos hőszigetelés vastagsága') ||
+                            (text.includes('Becsült megtakarítás') && text.includes('GJ')) ||
+                            (text.includes('szolgáltatást kapott') && text.includes('0 Ft'))
+                        ) {
+                            $(el).remove();
+                        }
+                    });
+
+                    htmlContent = $.html();
+
+                    // 2. Use Puppeteer to "print" HTML to PDF
+                    const browser = await puppeteer.launch({
+                        args: ['--no-sandbox', '--disable-setuid-sandbox']
+                    });
+                    const page = await browser.newPage();
+
+                    // Add premium Times New Roman styling based on XML analysis
+                    const styledHtml = `
+                        <html>
+                            <head>
+                                <style>
+                                    body { 
+                                        font-family: Arial, sans-serif; 
+                                        margin: 0;
+                                        padding: 0;
+                                        line-height: 1.15;
+                                        color: #000;
+                                        font-size: 11pt; /* XML sz:22 */
+                                        -webkit-print-color-adjust: exact;
+                                    }
+                                    
+                                    .content-wrapper {
+                                        /* XML Margins: Top:851, Bottom:601, Left:1416, Right:1413 (in TWIPS) */
+                                        /* 1pt = 20 twips */
+                                        padding-top: 42.5pt;
+                                        padding-bottom: 30pt;
+                                        padding-left: 70.8pt;
+                                        padding-right: 70.6pt;
+                                    }
+                                    
+                                    p { 
+                                        margin: 0 0 6pt 0; /* Approximate spacing w:after="118" */
+                                    }
+                                    
+                                    /* Force centering for the main title which might not have a styleId */
+                                    .content-wrapper > p:first-of-type {
+                                        text-align: center;
+                                        font-weight: bold;
+                                        font-size: 14pt;
+                                        margin-bottom: 12pt;
+                                    }
+                                    
+                                    h1, h2, h3, h4, h5, h6 {
+                                        line-height: 1.2;
+                                        font-weight: bold;
+                                        margin-top: 12pt;
+                                        margin-bottom: 6pt;
+                                    }
+                                    
+                                    h1 { 
+                                        font-size: 14pt; 
+                                    }
+                                    
+                                    h2 {
+                                        font-size: 12pt;
+                                    }
+                                    
+                                    strong { 
+                                        font-weight: bold; 
+                                    }
+                                    
+                                    table {
+                                        border-collapse: collapse;
+                                        width: 100%;
+                                        margin: 12pt 0;
+                                        table-layout: fixed;
+                                    }
+                                    table.bordered-table th, table.bordered-table td {
+                                        border: 0.5pt solid #000;
+                                        padding: 3pt 5pt;
+                                        font-size: 10.5pt;
+                                        text-align: left;
+                                        vertical-align: top;
+                                    }
+                                    table.layout-table th, table.layout-table td {
+                                        border: none;
+                                        padding: 2pt;
+                                        text-align: left;
+                                        vertical-align: top;
+                                        font-size: 10.5pt;
+                                    }
+                                    
+                                    /* Handle signatures/stamps */
+                                    img { 
+                                        display: block;
+                                        max-width: 100%; 
+                                    }
+                                    
+                                    .signature-img {
+                                        max-height: 60px;
+                                        width: auto;
+                                        margin: 5pt 0;
+                                    }
+                                    
+                                    .stamp-img {
+                                        max-height: 100px;
+                                        width: auto;
+                                        margin: 5pt 0;
+                                    }
+                                    
+                                    ul { 
+                                        margin: 8pt 0; 
+                                        padding-left: 30pt; 
+                                    }
+                                    
+                                    li { 
+                                        margin-bottom: 4pt; 
+                                    }
+                                    
+                                    @page {
+                                        size: A4;
+                                        margin: 0; /* Critical: Remove Puppeteer default margins to use CSS margins */
+                                    }
+                                </style>
+                            </head>
+                            <body>
+                                <div class="content-wrapper">
+                                    ${htmlContent}
+                                </div>
+                            </body>
+                        </html>
+                    `;
+
+                    await page.setContent(styledHtml, { waitUntil: 'networkidle0' });
+                    const pdfBuffer = await page.pdf({
+                        format: 'A4',
+                        margin: { top: 0, right: 0, bottom: 0, left: 0 },
+                        printBackground: true
+                    });
+
+                    await browser.close();
+
+                    if (!pdfBuffer || pdfBuffer.length === 0) {
+                        throw new Error('Puppeteer generated an empty PDF buffer.');
+                    }
+
                     const safeTemplateName = targetTemplate.replace(/[^a-z0-9]/gi, '_');
                     const fileName = `${safeTemplateName}_${data.contract_number || Date.now()}.pdf`;
                     const filePath = path.join(this.generatedDir, fileName);
                     fs.writeFileSync(filePath, pdfBuffer);
 
-                    console.log('[DocumentGenerator] PDF conversion successful:', fileName);
+                    console.log('[DocumentGenerator] PDF (Puppeteer) successful:', fileName, `(${pdfBuffer.length} bytes)`);
 
                     return {
                         fileName,
@@ -374,8 +578,8 @@ class DocumentGenerator {
                         fileUrl: `/generated/${fileName}`
                     };
                 } catch (pdfErr) {
-                    console.error('[DocumentGenerator] PDF Conversion Failed:', pdfErr);
-                    throw new Error('PDF generálás sikertelen (LibreOffice hiba). Kérlek ellenőrizd, hogy a LibreOffice telepítve van-e a szerveren.');
+                    console.error('[DocumentGenerator] PDF (Puppeteer) Conversion Failed:', pdfErr);
+                    throw new Error(`PDF generálás (Puppeteer) sikertelen: ${pdfErr.message}`);
                 }
             }
 
@@ -590,7 +794,7 @@ class DocumentGenerator {
             epites: data.building_year || '',
             falazat: data.building_type || '',
             ingatlantipusa: data.building_type || '',
-            futes: data.heating_type || '',
+            futes: data.futes || data.heating_type || '',
             szelemen: data.roof_type || '',
 
             // Technical
