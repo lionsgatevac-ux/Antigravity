@@ -19,4 +19,9 @@ temp/
 .agent/
 node_modules/
 **/node_modules/
+prod_backup_*.json
+*.tar.gz
+backups/
+audit_*.xlsx
+.claude/
 

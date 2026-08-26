@@ -26,8 +26,8 @@ const ProjectList = () => {
             const response = await projectsAPI.getAll(filters);
             setProjects(response.data || []);
         } catch (error) {
-            const errorMessage = error.response?.data?.error || error.message || 'Hiba a projektek betöltésekor';
-            showToast(errorMessage, 'error');
+            const errorMessage = error.response?.data?.error?.message || error.response?.data?.error || error.message || 'Hiba a projektek betöltésekor';
+            showToast(typeof errorMessage === 'string' ? errorMessage : 'Váratlan hiba történt', 'error');
             console.error(error);
         } finally {
             setLoading(false);

@@ -9,7 +9,7 @@ $PROJECT_ID = "padlas-fodem-szigeteles"
 $SERVICE_NAME = "padlas-fodem-szigeteles"
 $REGION = "europe-west1"
 $IMAGE_NAME = "europe-west1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/$SERVICE_NAME"
-$VERSION = "v45_energy_fix"
+$VERSION = "v62_node22"
 
 Write-Host "📋 Configuration:" -ForegroundColor Yellow
 Write-Host "   Project ID: $PROJECT_ID"
@@ -37,6 +37,9 @@ Write-Host ""
 
 # Step 3: Deploy to Cloud Run
 Write-Host "🚢 Step 3: Deploying to Cloud Run..." -ForegroundColor Cyan
+# Env vars are inherited from the currently running revision (JWT_SECRET, DATABASE_URL, stb.)
+# NE hasznalj --set-env-vars-t: az torolne a csak felhoben beallitott valtozokat (pl. JWT_SECRET)!
+
 gcloud run deploy $SERVICE_NAME `
     --image "${IMAGE_NAME}:${VERSION}" `
     --platform managed `
@@ -45,8 +48,7 @@ gcloud run deploy $SERVICE_NAME `
     --memory 2Gi `
     --cpu 2 `
     --timeout 300 `
-    --max-instances 10 `
-    --set-env-vars "NODE_ENV=production,PORT=8080,FRONTEND_URL=https://padlas-fodem-szigeteles-wccgabnluq-ew.a.run.app,CORS_ORIGIN=https://padlas-fodem-szigeteles-wccgabnluq-ew.a.run.app,SUPABASE_URL=https://pkjohziwbiiyzyospuot.supabase.co,SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBram9oeml3YmlpeXp5b3NwdW90Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUwNDQ0OTcsImV4cCI6MjA4MDYyMDQ5N30.Q35HTntIe_yTKyAYvYDIDvrPqIiz4WyZYzWHKfFiJZY"
+    --max-instances 10
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "❌ Cloud Run deployment failed!" -ForegroundColor Red

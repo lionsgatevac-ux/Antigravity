@@ -3,15 +3,16 @@ import axios from 'axios';
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 const api = axios.create({
-    baseURL: API_URL,
-    headers: {
-        'Content-Type': 'application/json'
-    }
+    baseURL: API_URL
 });
 
 // Request interceptor
 api.interceptors.request.use(
     (config) => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
         return config;
     },
     (error) => {
@@ -23,11 +24,20 @@ api.interceptors.request.use(
 api.interceptors.response.use(
     (response) => response.data,
     (error) => {
-        const message = error.response?.data?.error?.message || error.response?.data?.error || error.message;
+        let message = 'Váratlan hiba történt';
+        if (error.response?.data?.error) {
+            const errData = error.response.data.error;
+            if (typeof errData === 'object' && errData !== null) {
+                message = errData.message || 'Ismeretlen szerver hiba';
+            } else {
+                message = String(errData);
+            }
+        } else if (error.message) {
+            message = error.message;
+        }
+
         console.error('API Error:', message);
-        // Update the message but return the original error object 
-        // to preserve error.response.status for other interceptors (like logout)
-        error.message = message;
+        error.message = String(message);
         return Promise.reject(error);
     }
 );
@@ -68,19 +78,15 @@ export const documentsAPI = {
 // Uploads API
 export const uploadsAPI = {
     uploadPhoto: (formData) =>
-        api.post('/uploads/photo', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-        }),
+        api.post('/uploads/photo', formData),
     uploadPhotosBulk: (formData) =>
-        api.post('/uploads/photos/bulk', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-        }),
+        api.post('/uploads/photos/bulk', formData),
     uploadSignature: (formData) =>
-        api.post('/uploads/signature', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-        }),
+        api.post('/uploads/signature', formData),
     getPhotos: (projectId) =>
-        api.get(`/uploads/photos/${projectId}`)
+        api.get(`/uploads/photos/${projectId}`),
+    deletePhoto: (projectId, photoType) =>
+        api.delete(`/uploads/photos/${projectId}/${photoType}`)
 };
 
 // Stats API

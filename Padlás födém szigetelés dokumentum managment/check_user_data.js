@@ -2,12 +2,13 @@ const { query } = require('./backend/config/database');
 
 async function checkUser() {
     try {
-        const result = await query("SELECT id, email, role, organization_id, company_name FROM users WHERE email = 'admin@bozso.hu'"); // Assuming admin email
-        console.log('User Record:', result.rows);
+        console.log('--- User Adat Ellenőrzése ---');
+        const res = await query('SELECT * FROM users LIMIT 1');
+        console.log(res.rows[0]);
+        process.exit(0);
     } catch (err) {
-        console.error('Error checking user:', err);
-    } finally {
-        process.exit();
+        console.error(err);
+        process.exit(1);
     }
 }
 

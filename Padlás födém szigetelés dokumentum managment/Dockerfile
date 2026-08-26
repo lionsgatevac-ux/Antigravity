@@ -1,5 +1,5 @@
-# Use Node.js LTS
-FROM node:20-slim
+# Use Node.js LTS (>=22 required by @supabase/supabase-js realtime - native WebSocket)
+FROM node:22-slim
 
 # Install system dependencies (Puppeteer/Chromium dependencies)
 RUN apt-get update && apt-get install -y \

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { CheckCircle, PenTool, Mail } from 'lucide-react';
-import { projectsAPI, documentsAPI } from '../services/api';
+import { CheckCircle, PenTool, Mail, Trash2 } from 'lucide-react';
+import { projectsAPI, documentsAPI, uploadsAPI } from '../services/api';
 import { useApp } from '../context/AppContext';
 import { formatDate } from '../utils/calculations';
 import SignatureModal from '../components/SignatureModal';
@@ -25,6 +25,7 @@ const ProjectDetails = () => {
     const [contractorSignature, setContractorSignature] = useState(null);
     const [refreshPhotos, setRefreshPhotos] = useState(0);
     const [showFloorPlanModal, setShowFloorPlanModal] = useState(false);
+    const [showFloorPlanPlusModal, setShowFloorPlanPlusModal] = useState(false);
     const [docFormat, setDocFormat] = useState('docx'); // 'docx' or 'pdf'
 
 
@@ -128,6 +129,28 @@ const ProjectDetails = () => {
         }
     };
 
+    const handleDeleteFloorPlan = async (photoType) => {
+        const confirmMsg = photoType === 'floor_plan'
+            ? 'Biztosan törölni szeretné az alaprajzot?'
+            : 'Biztosan törölni szeretné a kiegészítő alaprajzot?';
+
+        if (window.confirm(confirmMsg)) {
+            try {
+                setLoading(true);
+                const response = await uploadsAPI.deletePhoto(id, photoType);
+                if (response.success) {
+                    showToast('Alaprajz sikeresen törölve!', 'success');
+                    await loadProject(); // Refresh to update preview
+                }
+            } catch (error) {
+                console.error('Error deleting floor plan:', error);
+                showToast('Hiba a törlés során', 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+    };
+
     const handleSendDocuments = async () => {
         if (!project.email) {
             showToast('Ügyfél email címe hiányzik!', 'error');
@@ -208,6 +231,13 @@ const ProjectDetails = () => {
                 >
                     ✏️ Szerkesztés
                 </button>
+                <button
+                    className="btn btn-secondary"
+                    onClick={() => navigate(`/projects/${id}/usage`)}
+                    style={{ backgroundColor: '#0ea5e9', color: 'white', marginLeft: '10px' }}
+                >
+                    🏗️ Anyagfelhasználás
+                </button>
             </div>
 
             {/* 1. Alapadatok & Ügyfél (Két oszlop) */}
@@ -265,9 +295,9 @@ const ProjectDetails = () => {
                     <p><strong>Várható megtakarítás:</strong> {project.energy_saving_gj || 0} GJ/év</p>
                     <hr />
                     <h3>Beépített Anyagok</h3>
-                    <p><strong>Párazáró fólia:</strong> {project.vapor_barrier_type || '-'}</p>
-                    <p><strong>Üveggyapot:</strong> {project.insulation_type || '-'}</p>
-                    <p><strong>Páraáteresztő fólia:</strong> {project.breathable_membrane_type || '-'}</p>
+                    <p><strong>Párazáró fólia:</strong> {(project.vapor_barrier_type && typeof project.vapor_barrier_type === 'object') ? String(project.vapor_barrier_type.name || '-') : String(project.vapor_barrier_type || '-')}</p>
+                    <p><strong>Üveggyapot:</strong> {(project.insulation_type && typeof project.insulation_type === 'object') ? String(project.insulation_type.name || '-') : String(project.insulation_type || '-')}</p>
+                    <p><strong>Páraáteresztő fólia:</strong> {(project.breathable_membrane_type && typeof project.breathable_membrane_type === 'object') ? String(project.breathable_membrane_type.name || '-') : String(project.breathable_membrane_type || '-')}</p>
                 </div>
 
                 <div className="card">
@@ -278,6 +308,7 @@ const ProjectDetails = () => {
                     <p><strong>Támogatás összege:</strong> {project.government_support ? new Intl.NumberFormat('hu-HU').format(project.government_support) : 0} Ft</p>
                     <p><strong>HEM Érték:</strong> {project.hem_value ? new Intl.NumberFormat('hu-HU').format(project.hem_value) : 0} Ft</p>
                     <hr />
+                    <p><strong>Kivitelezés dátuma:</strong> {formatDate(project.execution_date)}</p>
                     <p><strong>Munka kezdete:</strong> {formatDate(project.work_start_date)}</p>
                     <p><strong>Munka vége:</strong> {formatDate(project.work_end_date)}</p>
                 </div>
@@ -303,13 +334,71 @@ const ProjectDetails = () => {
                     </div>
                 )}
 
-                <button
-                    onClick={() => setShowFloorPlanModal(true)}
-                    className="btn btn-primary w-full flex items-center justify-center gap-2"
-                >
-                    <PenTool size={18} />
-                    {project.floor_plan_url ? 'Alaprajz Szerkesztése (V2)' : 'Új Alaprajz Készítése (V2)'}
-                </button>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                    <button
+                        onClick={() => setShowFloorPlanModal(true)}
+                        className="btn btn-primary flex-1 flex items-center justify-center gap-2"
+                        style={{ flex: 1 }}
+                    >
+                        <PenTool size={18} />
+                        {project.floor_plan_url ? 'Szerkesztés' : 'Új Alaprajz'}
+                    </button>
+                    {project.floor_plan_url && (
+                        <button
+                            onClick={() => handleDeleteFloorPlan('floor_plan')}
+                            className="btn btn-danger"
+                            style={{ backgroundColor: '#ef4444', color: 'white', padding: '10px' }}
+                            title="Törlés"
+                        >
+                            <Trash2 size={18} />
+                        </button>
+                    )}
+                </div>
+
+                <hr style={{ margin: '20px 0', borderTop: '1px solid #eee' }} />
+
+                <h3 style={{ fontSize: '1.1em', fontWeight: 'bold', marginBottom: '15px', color: '#4b5563' }}>Kiegészítő Alaprajz (Opcionális)</h3>
+                <p style={{ fontSize: '0.9em', color: '#666', marginBottom: '15px' }}>
+                    Opcionális második alaprajz (pl. több padlástér esetén).
+                </p>
+
+                {/* Second Floor Plan Preview if exists */}
+                {project.floor_plan_plus_url && (
+                    <div style={{ marginBottom: '20px', border: '1px solid #eee', borderRadius: '8px', padding: '10px', backgroundColor: '#fdfdfd' }}>
+                        <p style={{ fontSize: '0.9em', color: '#666', marginBottom: '10px' }}>Mentett kiegészítő alaprajz:</p>
+                        <img
+                            src={project.floor_plan_plus_url.startsWith('http') ? project.floor_plan_plus_url : `${window.location.origin}${project.floor_plan_plus_url}`}
+                            alt="Kiegészítő Alaprajz"
+                            style={{ maxWidth: '100%', borderRadius: '4px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}
+                            onError={(e) => {
+                                console.error('Floor plan plus image failed to load:', project.floor_plan_plus_url);
+                                e.target.style.display = 'none';
+                                e.target.parentElement.innerHTML = `<p style="color: #999; padding: 20px; text-align: center;">A kiegészítő alaprajz nem tölthető be. Kérem próbálja újra feltölteni.<br><span style="font-size: 0.8em; color: #ccc;">(${project.floor_plan_plus_url})</span></p>`;
+                            }}
+                        />
+                    </div>
+                )}
+
+                <div style={{ display: 'flex', gap: '10px' }}>
+                    <button
+                        onClick={() => setShowFloorPlanPlusModal(true)}
+                        className="btn btn-secondary flex-1 flex items-center justify-center gap-2"
+                        style={{ flex: 1, backgroundColor: '#4b5563', color: 'white' }}
+                    >
+                        <PenTool size={18} />
+                        {project.floor_plan_plus_url ? 'Szerkesztés' : 'Új Kiegészítő'}
+                    </button>
+                    {project.floor_plan_plus_url && (
+                        <button
+                            onClick={() => handleDeleteFloorPlan('floor_plan_plus')}
+                            className="btn btn-danger"
+                            style={{ backgroundColor: '#ef4444', color: 'white', padding: '10px' }}
+                            title="Törlés"
+                        >
+                            <Trash2 size={18} />
+                        </button>
+                    )}
+                </div>
             </div>
 
             <div className="card">
@@ -490,6 +579,19 @@ const ProjectDetails = () => {
                 onSaveSuccess={() => {
                     loadProject();
                     showToast('Alaprajz sikeresen mentve!', 'success');
+                }}
+            />
+
+            <FloorPlanModal
+                projectId={id}
+                initialImageUrl={project.floor_plan_plus_url}
+                isOpen={showFloorPlanPlusModal}
+                onClose={() => setShowFloorPlanPlusModal(false)}
+                photoType="floor_plan_plus"
+                title="Kiegészítő Alaprajz Kezelése"
+                onSaveSuccess={() => {
+                    loadProject();
+                    showToast('Kiegészítő alaprajz sikeresen mentve!', 'success');
                 }}
             />
         </div>

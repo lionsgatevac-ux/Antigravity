@@ -18,28 +18,8 @@ const getConnectionString = () => {
 };
 
 const getConfig = () => {
-    // Detect production: NODE_ENV or Google Cloud Run service name
-    const isProduction = process.env.NODE_ENV === 'production' || process.env.K_SERVICE !== undefined;
-
-    // NUCLEAR OPTION: Hardcoded, Pre-Encoded URL
-    // Biznisz%20matek is correctly encoded.
-    // Host: aws-1-eu-central-1.pooler.supabase.com
-    // Port: 6543
-    const prodUrl = 'postgresql://postgres.pkjohziwbiiyzyospuot:Biznisz%20matek@aws-1-eu-central-1.pooler.supabase.com:6543/postgres';
-
-    if (isProduction) {
-        console.log('globe Config: Forcing Hardcoded Production URL.');
-        // Bypass env var check completely for production to guarantee correct credentials
-        return {
-            connectionString: prodUrl,
-            ssl: { rejectUnauthorized: false },
-            max: 20,
-            idleTimeoutMillis: 30000,
-            connectionTimeoutMillis: 10000,
-        };
-    }
-
-    // 1. If DATABASE_URL is provided (e.g. from Docker or Env) and NOT successfully handled by production check above
+    // DATABASE_URL is the single source of truth in every environment
+    // (Cloud Run gets it as an env var, local dev from backend/.env)
     if (process.env.DATABASE_URL) {
         console.log('wrench Config: Using provided DATABASE_URL environment variable.');
         let url = process.env.DATABASE_URL;
@@ -53,11 +33,12 @@ const getConfig = () => {
             connectionString: url,
             max: 20,
             idleTimeoutMillis: 30000,
-            connectionTimeoutMillis: 5000,
+            connectionTimeoutMillis: 10000,
         };
 
-        if (url.includes('localhost') || url.includes('127.0.0.1')) {
-            console.log('wrench Config: SSL disabled for local connection.');
+        // No SSL for localhost and for Cloud SQL unix-socket connections (/cloudsql/...)
+        if (url.includes('localhost') || url.includes('127.0.0.1') || url.includes('/cloudsql/')) {
+            console.log('wrench Config: SSL disabled for local/socket connection.');
         } else {
             config.ssl = { rejectUnauthorized: false };
         }

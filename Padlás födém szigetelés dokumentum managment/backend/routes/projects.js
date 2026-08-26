@@ -17,7 +17,7 @@ router.get('/', async (req, res, next) => {
         const projects = await Project.findAll({ status }, req.user); // Pass user for filtering
         res.json({ success: true, data: projects });
     } catch (error) {
-        console.error('❌ ERROR FETCHING PROJECTS:', error);
+        console.error('ERROR FETCHING PROJECTS:', error);
 
         try {
             const fs = require('fs');
@@ -56,10 +56,14 @@ router.post('/', async (req, res, next) => {
         const { customer, property, details } = req.body;
 
         // Sanitize numeric fields - convert empty strings to null
+        // Accepts comma as decimal separator (Hungarian locale) and defensively
+        // rounds to 2 decimals to avoid IEEE754 float precision loss (181.83 → 181.82 bug)
         const sanitizeNumeric = (value) => {
             if (value === '' || value === null || value === undefined) return null;
-            const num = Number(value);
-            return isNaN(num) ? null : num;
+            const strVal = String(value).trim().replace(',', '.');
+            const num = parseFloat(strVal);
+            if (isNaN(num)) return null;
+            return Math.round(num * 100) / 100;
         };
 
         // Sanitize string fields - convert "undefined"/"null" strings to null
@@ -143,18 +147,18 @@ router.post('/', async (req, res, next) => {
             );
             const newProperty = propertyResult.rows[0];
 
-            // Create project details (existing code)
+            // Create project details (fixed SQL with hem_value)
             const detailsResult = await client.query(
                 `INSERT INTO project_details (
                     project_id, customer_id, property_id, 
                     gross_area, chimney_area, attic_door_area, other_deducted_area, 
                     net_area, net_amount, energy_saving_gj, labor_cost, 
-                    government_support, insulation_type, 
+                    hem_value, government_support, insulation_type, 
                     vapor_barrier_type, breathable_membrane_type,
                     pf_kivul_fodemen, pf_kivul_oromfal, pf_kivul_bonthato, pf_kivul_egyeb, pf_kivul_egyeb_szoveg,
-                    work_hour_start, work_hour_end, execution_date
+                    work_hour_start, work_hour_end, execution_date, work_start_date, work_end_date
                 )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24) RETURNING *`,
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26) RETURNING *`,
                 [project.id, newCustomer.id, newProperty.id,
                 sanitizedDetails.gross_area, sanitizedDetails.chimney_area, sanitizedDetails.attic_door_area,
                 sanitizedDetails.other_deducted_area, sanitizedDetails.net_area, sanitizedDetails.net_amount,
@@ -163,7 +167,8 @@ router.post('/', async (req, res, next) => {
                 sanitizedDetails.vapor_barrier_type, sanitizedDetails.breathable_membrane_type,
                 sanitizedDetails.pf_kivul_fodemen, sanitizedDetails.pf_kivul_oromfal, sanitizedDetails.pf_kivul_bonthato,
                 sanitizedDetails.pf_kivul_egyeb, sanitizedDetails.pf_kivul_egyeb_szoveg,
-                sanitizedDetails.work_hour_start, sanitizedDetails.work_hour_end, sanitizedDetails.execution_date]
+                sanitizedDetails.work_hour_start, sanitizedDetails.work_hour_end, sanitizedDetails.execution_date,
+                sanitizedDetails.execution_date, sanitizedDetails.execution_date]
             );
 
             // --- AUTO-DEDUCT MATERIALS FROM USER STOCK ---
@@ -246,7 +251,6 @@ router.post('/', async (req, res, next) => {
 
                         if (currentStock < item.quantity) {
                             console.warn(`[AutoDeduct] Negative stock warning for ${item.name}: Need ${item.quantity}, have ${currentStock}. Proceeding anyway.`);
-                            // throw new Error(...) - Removed per user request
                         }
 
                         // Deduct
@@ -254,7 +258,7 @@ router.post('/', async (req, res, next) => {
                             `INSERT INTO material_transactions 
                             (material_id, quantity_change, quantity, transaction_type, project_id, status, notes, created_by) 
                             VALUES ($1, 0, $2, 'USAGE', $3, 'COMPLETED', $4, $5)`,
-                            [item.id, item.quantity, project.id, 'Automatikus levonás projekt létrehozáskor', req.user.id]
+                            [item.id, item.quantity, project.id, 'Automatikus levonas projekt letrehozasakor', req.user.id]
                         );
 
                         console.log(`[AutoDeduct] Deducted ${item.quantity} of ${item.name} for project ${project.contract_number}`);
@@ -273,7 +277,7 @@ router.post('/', async (req, res, next) => {
 
         res.status(201).json({ success: true, data: result });
     } catch (error) {
-        console.error('❌ ERROR CREATING PROJECT:', error);
+        console.error('ERROR CREATING PROJECT:', error);
         console.error('Request Body:', JSON.stringify(req.body, null, 2));
 
         try {
@@ -291,6 +295,20 @@ router.post('/', async (req, res, next) => {
             console.error('Failed to write to debug_errors.json', logErr);
         }
 
+        next(error);
+    }
+});
+
+// PUT bulk update project status (MUST be before /:id to avoid route conflict)
+router.put('/bulk-status', async (req, res, next) => {
+    try {
+        const { ids, status } = req.body;
+        if (!ids || !Array.isArray(ids) || !status) {
+            return res.status(400).json({ success: false, error: 'Ids array and status are required' });
+        }
+        const result = await Project.bulkUpdateStatus(ids, status);
+        res.json({ success: true, ...result });
+    } catch (error) {
         next(error);
     }
 });
@@ -324,10 +342,14 @@ router.put('/:id/full_update', async (req, res, next) => {
         const { customer, property, details } = req.body;
 
         // Sanitize numeric fields - convert empty strings to null
+        // Accepts comma as decimal separator (Hungarian locale) and defensively
+        // rounds to 2 decimals to avoid IEEE754 float precision loss (181.83 → 181.82 bug)
         const sanitizeNumeric = (value) => {
             if (value === '' || value === null || value === undefined) return null;
-            const num = Number(value);
-            return isNaN(num) ? null : num;
+            const strVal = String(value).trim().replace(',', '.');
+            const num = parseFloat(strVal);
+            if (isNaN(num)) return null;
+            return Math.round(num * 100) / 100;
         };
 
         // Sanitize string fields
@@ -377,16 +399,10 @@ router.put('/:id/full_update', async (req, res, next) => {
 
         const result = await transaction(async (client) => {
             // 1. Verify project exists and user has access
-            // (Assuming authMiddleware handles general access, but good to check project existence)
             const projectCheck = await client.query('SELECT * FROM projects WHERE id = $1', [projectId]);
             if (projectCheck.rows.length === 0) {
                 throw new Error('Project not found');
             }
-            // For rigorous security: check organization_id matches req.user.organization_id if not admin
-
-            // 2. Update Customer
-            // We need customer_id from project or project_details. 
-            // In this schema, project_details links to customer.
 
             // Get current IDs
             const detailsQuery = await client.query('SELECT * FROM project_details WHERE project_id = $1', [projectId]);
@@ -437,7 +453,8 @@ router.put('/:id/full_update', async (req, res, next) => {
                     vapor_barrier_type = $12, breathable_membrane_type = $13,
                     pf_kivul_fodemen = $14, pf_kivul_oromfal = $15, pf_kivul_bonthato = $16,
                     pf_kivul_egyeb = $17, pf_kivul_egyeb_szoveg = $18, attic_door_insulated = $19,
-                    work_hour_start = $20, work_hour_end = $21, execution_date = $22
+                    work_hour_start = $20, work_hour_end = $21, execution_date = $22::date,
+                    work_start_date = $22::timestamp, work_end_date = $22::timestamp
                  WHERE project_id = $23
                  RETURNING *`,
                 [sanitizedDetails.gross_area, sanitizedDetails.chimney_area, sanitizedDetails.attic_door_area,
@@ -464,7 +481,7 @@ router.put('/:id/full_update', async (req, res, next) => {
 
         res.json({ success: true, data: result });
     } catch (error) {
-        console.error('❌ ERROR UPDATING PROJECT:', error);
+        console.error('ERROR UPDATING PROJECT:', error);
 
         try {
             const fs = require('fs');
@@ -481,20 +498,6 @@ router.put('/:id/full_update', async (req, res, next) => {
             console.error('Failed to write to debug_errors.json', logErr);
         }
 
-        next(error);
-    }
-});
-
-// PUT bulk update project status
-router.put('/bulk-status', async (req, res, next) => {
-    try {
-        const { ids, status } = req.body;
-        if (!ids || !Array.isArray(ids) || !status) {
-            return res.status(400).json({ success: false, error: 'Ids array and status are required' });
-        }
-        const result = await Project.bulkUpdateStatus(ids, status);
-        res.json({ success: true, ...result });
-    } catch (error) {
         next(error);
     }
 });
@@ -554,15 +557,14 @@ router.put('/:id/signature', async (req, res, next) => {
                 signatureType,
                 signedAt: result.rows[0][timestampColumn]
             },
-            message: `${signatureType === 'customer' ? 'Ügyfél' : 'Kivitelező'} aláírás sikeresen mentve`
+            message: `${signatureType === 'customer' ? 'Ugyfel' : 'Kivitelezo'} alairas sikeresen mentve`
         });
     } catch (error) {
-        console.error('❌ ERROR SAVING SIGNATURE:', error);
+        console.error('ERROR SAVING SIGNATURE:', error);
         next(error);
     }
 });
 
-// Helper to get file content (remote or local)
 // Helper to get file content (remote or local)
 async function getFileContent(filePath) {
     if (!filePath) return null;
@@ -598,10 +600,6 @@ async function getFileContent(filePath) {
         return fs.readFileSync(absPath);
     }
 
-    // If we are here, file is missing locally
-    // If it looks like a local path (starts with / or has no protocol), verify if it IS local.
-    // However, on production, almost all files should be in Supabase.
-    // We log but don't crash.
     console.warn(`[ZIP] File not found locally: ${filePath}`);
     return null;
 }
@@ -624,29 +622,25 @@ router.get('/:id/export', async (req, res, next) => {
         const zip = new PizZip();
 
         // 2. Create Summary Text
-        let summary = `PROJEKT ÖSSZESÍTŐ - ${projectData.contract_number}\n`;
-        // ... (summary construction remains same)
+        let summary = `PROJEKT OSSZESITO - ${projectData.contract_number}\n`;
         summary += `==========================================\n\n`;
-        summary += `ÜGYFÉL ADATAI:\n`;
-        summary += `Név: ${projectData.full_name}\n`;
-        // ...
-        summary += `Lakcím: ${projectData.customer_postal_code} ${projectData.customer_city}, ${projectData.customer_street} ${projectData.customer_house_number}\n\n`;
+        summary += `UGYFEL ADATAI:\n`;
+        summary += `Nev: ${projectData.full_name}\n`;
+        summary += `Lakcim: ${projectData.customer_postal_code} ${projectData.customer_city}, ${projectData.customer_street} ${projectData.customer_house_number}\n\n`;
 
         summary += `INGATLAN ADATAI:\n`;
-        summary += `Cím: ${projectData.property_postal_code} ${projectData.property_city}, ${projectData.property_street} ${projectData.property_house_number}\n`;
-        // ...
+        summary += `Cim: ${projectData.property_postal_code} ${projectData.property_city}, ${projectData.property_street} ${projectData.property_house_number}\n`;
+        summary += `Futes tipusa: ${projectData.heating_type || '-'}\n`;
 
         zip.file('projekt_adatlap.txt', summary);
 
         // 3. Add Photos
-        // 3. Add Photos (Robust Logic)
         const photosFolder = zip.folder('Fotok');
         for (const photo of photosResult.rows) {
             try {
-                // Determine extension
                 let ext = path.extname(photo.file_path);
                 if (!ext && photo.file_path.startsWith('http')) {
-                    ext = '.png'; // Default for remote if missing
+                    ext = '.png';
                 }
                 const filename = `${photo.photo_type}_${photo.id}${ext}`;
 
@@ -663,30 +657,19 @@ router.get('/:id/export', async (req, res, next) => {
             }
         }
 
-        // 4. Add Documents (Reverted - File System Check)
-        const docsFolder = zip.folder('Dokumentumok');
-        console.log('[ZIP] Reverting to simple check due to deployment crash');
-        /* 
         // 4. Add Documents (On-the-fly Generation)
-        // const docsFolder = zip.folder('Dokumentumok');
         const documentGenerator = require('../services/documentGenerator');
         const fs = require('fs');
 
-        // Prepare Template Data (Copied from remote-request logic)
+        // Prepare Template Data
         let floorPlanBase64 = '';
         if (projectData.floor_plan_url) {
             floorPlanBase64 = projectData.floor_plan_url;
         }
 
         const templateData = {
-            contract_number: projectData.contract_number,
-            contract_date: new Date(),
+            ...projectData,
             customer_name: projectData.full_name,
-            customer_birth_name: projectData.birth_name,
-            customer_mother_name: projectData.mother_name,
-            customer_id_number: projectData.id_number,
-            customer_phone: projectData.phone,
-            customer_email: projectData.email,
             customer_address: {
                 postalCode: projectData.customer_postal_code,
                 city: projectData.customer_city,
@@ -699,76 +682,28 @@ router.get('/:id/export', async (req, res, next) => {
                 street: projectData.property_street,
                 houseNumber: projectData.property_house_number
             },
-            hrsz: projectData.hrsz,
-            building_year: projectData.building_year,
-            building_type: projectData.building_type,
-            structure_type: projectData.structure_type,
-            structure_thickness: projectData.structure_thickness,
-            unheated_space_type: projectData.unheated_space_type,
-            unheated_space_area: projectData.unheated_space_area,
-            unheated_space_name: projectData.unheated_space_name,
-            gross_area: projectData.gross_area,
-            chimney_area: projectData.chimney_area,
-            attic_door_area: projectData.attic_door_area,
-            other_deducted_area: projectData.other_deducted_area,
-            net_area: projectData.net_area,
-            insulation_thickness: projectData.insulation_thickness,
-            r_value: projectData.r_value,
-            work_start_date: projectData.work_start_date,
-            work_end_date: projectData.work_end_date,
-            handover_date: projectData.handover_date,
-            net_amount: projectData.net_amount,
-            net_amount_words: projectData.net_amount_words,
-            labor_cost: projectData.labor_cost,
-            work_hour_start: projectData.work_hour_start,
-            work_hour_end: projectData.work_hour_end,
-            execution_date: projectData.execution_date,
-            energy_saving_gj: projectData.energy_saving_gj,
-            hem_value: projectData.hem_value,
-            government_support: projectData.government_support,
-            attic_door_insulated: projectData.attic_door_insulated,
-            insulation_type: projectData.insulation_type,
-            vapor_barrier_type: projectData.vapor_barrier_type,
-            breathable_membrane_type: projectData.breathable_membrane_type,
-            customer_signature_data: projectData.customer_signature_data,
-            contractor_signature_data: projectData.contractor_signature_data,
             alaprajz: floorPlanBase64,
-            owner_role: 'admin' // Default to admin or fetch from user context if available (req.user?) but for ZIP export we assume internal use mostly or standardized template
+            owner_role: 'admin'
         };
 
-        // Determine Owner Role for Template Selection (if needed)
-        // Since ZIP export is likely admin/internal, we use default templates.
-        // If specific owner data is needed, we would need to join `users` table or similar.
-        // For now, let's assume standard templates.
-
+        const docsFolder = zip.folder('Dokumentumok');
         const documentsToGenerate = ['kivitelezesi_szerzodes', 'atadas_atveteli', 'kivitelezoi_nyilatkozat', 'megallapodas_hem', 'tamogatas_igenylo'];
 
         for (const docType of documentsToGenerate) {
             try {
                 console.log(`[ZIP] Generating document on-the-fly: ${docType}`);
-                // Generate DOCX
                 const result = await documentGenerator.generate(docType, templateData, 'docx');
 
-                // Read the generated file (it is written to /generated locally)
                 if (fs.existsSync(result.filePath)) {
                     const buffer = fs.readFileSync(result.filePath);
                     docsFolder.file(result.fileName, buffer);
                 } else {
                     console.error(`[ZIP] Generated file not found: ${result.filePath}`);
-                    docsFolder.file(`${docType}_ERROR.txt`, 'Generated file not found on disk.');
                 }
-
             } catch (err) {
                 console.error(`[ZIP] Error generating doc ${docType}:`, err);
                 docsFolder.file(`${docType}_ERROR.txt`, `Error: ${err.message}`);
             }
-        } 
-        */
-
-        // REVERTED LOGIC (Simple Loop)
-        for (const doc of docsResult.rows) {
-            const fileName = path.basename(doc.file_path) || `document_${doc.id}.pdf`;
-            docsFolder.file(`WARNING_${doc.id}.txt`, `File check disabled for debug stability: ${fileName}`);
         }
 
         // 5. Add Signatures (if exist as data)
@@ -793,7 +728,7 @@ router.get('/:id/export', async (req, res, next) => {
         res.send(content);
 
     } catch (error) {
-        console.error('❌ EXPORT ERROR:', error);
+        console.error('EXPORT ERROR:', error);
         next(error);
     }
 });
@@ -809,7 +744,6 @@ router.post('/:id/remote-request', async (req, res, next) => {
         const { query } = require('../config/database');
 
         const project = await Project.findById(projectId);
-        console.log(`[DEBUG] Project found: ${project ? 'YES' : 'NO'}`, project ? project.id : '');
 
         if (!project) {
             return res.status(404).json({ success: false, error: 'Project not found' });
@@ -827,14 +761,9 @@ router.post('/:id/remote-request', async (req, res, next) => {
             [token, expiresAt, projectId]
         );
 
-        // Prepare Template Data
-        // Load floor plan if exists
-        let floorPlanBase64 = ''; // Can be URL or Base64 in templateData now?
-        // fetchImagesForTemplate in documentGenerator will handle URL.
-        // So we just pass the URL if available!
-
+        let floorPlanBase64 = '';
         if (project.floor_plan_url) {
-            floorPlanBase64 = project.floor_plan_url; // Use URL directly
+            floorPlanBase64 = project.floor_plan_url;
         }
 
         let floorPlanPlusBase64 = '';
@@ -844,7 +773,7 @@ router.post('/:id/remote-request', async (req, res, next) => {
 
         const templateData = {
             contract_number: project.contract_number,
-            contract_date: new Date(),
+            contract_date: project.created_at || new Date(),
             customer_name: project.full_name,
             customer_birth_name: project.birth_name,
             customer_mother_name: project.mother_name,
@@ -901,14 +830,12 @@ router.post('/:id/remote-request', async (req, res, next) => {
             alaprajzplusz: floorPlanPlusBase64
         };
 
-        // Generate Documents
         const documentsToGenerate = ['kivitelezesi_szerzodes', 'atadas_atveteli', 'kivitelezoi_nyilatkozat', 'megallapodas_hem', 'tamogatas_igenylo'];
         const attachments = [];
 
         for (const docType of documentsToGenerate) {
             try {
                 const result = await documentGenerator.generate(docType, templateData);
-                // Attach filePath (which is local generated file) - This is fine.
                 attachments.push({
                     filename: result.fileName,
                     path: result.filePath
@@ -918,10 +845,8 @@ router.post('/:id/remote-request', async (req, res, next) => {
             }
         }
 
-        // Send Email
         await sendRemoteSignatureRequest(project.email, token, project, attachments);
-
-        res.json({ success: true, message: 'Aláíráskérő email elküldve!' });
+        res.json({ success: true, message: 'Alairaskero email elkuldve!' });
 
     } catch (error) {
         console.error('Remote request error:', error);
@@ -954,17 +879,14 @@ router.post('/:id/send-documents', async (req, res, next) => {
             return res.status(400).json({ success: false, error: 'Customer email is missing' });
         }
 
-        // Load floor plan if exists - Use URL directly
         let floorPlanBase64 = '';
         if (project.floor_plan_url) {
             floorPlanBase64 = project.floor_plan_url;
         }
 
-        // Prepare template data
         const templateData = {
-            // ... same mapping as above
             contract_number: project.contract_number,
-            contract_date: new Date(),
+            contract_date: project.created_at || new Date(),
             customer_name: project.full_name,
             customer_birth_name: project.birth_name,
             customer_mother_name: project.mother_name,
@@ -1019,14 +941,12 @@ router.post('/:id/send-documents', async (req, res, next) => {
             alaprajz: floorPlanBase64
         };
 
-        // Generate documents on-the-fly
         const documentsToGenerate = ['kivitelezesi_szerzodes', 'atadas_atveteli', 'kivitelezoi_nyilatkozat', 'megallapodas_hem', 'tamogatas_igenylo'];
         const attachments = [];
 
         for (const docType of documentsToGenerate) {
             try {
                 const result = await documentGenerator.generate(docType, templateData);
-                // Attach filePath
                 attachments.push({
                     filename: result.fileName,
                     path: result.filePath
@@ -1043,12 +963,11 @@ router.post('/:id/send-documents', async (req, res, next) => {
             });
         }
 
-        // Send email with all documents
         await sendProjectDocuments(project.email, project, attachments);
 
         res.json({
             success: true,
-            message: `Dokumentumok sikeresen elküldve ${project.email} címre!`,
+            message: `Dokumentumok sikeresen elküldve ${project.email} cimre!`,
             documentCount: attachments.length
         });
 

@@ -4,7 +4,7 @@ import { Pencil, Type, Eraser, Trash2, Square, Circle, Pen, Save, Undo, Ruler, X
 import { uploadsAPI } from '../services/api';
 import { useApp } from '../context/AppContext';
 
-export default function FloorPlanModal({ projectId, isOpen, onClose, onSaveSuccess, initialImageUrl }) {
+export default function FloorPlanModal({ projectId, isOpen, onClose, onSaveSuccess, initialImageUrl, photoType = 'floor_plan', title = 'Alaprajz Tervező' }) {
     const canvasRef = useRef(null);
     const startPosRef = useRef(null); // Use ref to avoid state update race conditions
     const { showToast } = useApp();
@@ -19,11 +19,21 @@ export default function FloorPlanModal({ projectId, isOpen, onClose, onSaveSucce
     const [textPosition, setTextPosition] = useState(null);
     const [isSaving, setIsSaving] = useState(false);
 
-    // Canvas size (778x518 + 10% = 856x570)
-    const INTERNAL_WIDTH = 856;
-    const INTERNAL_HEIGHT = 570;
-
     useEffect(() => {
+        let resizeTimeout;
+        const resizeCanvas = () => {
+            if (canvasRef.current) {
+                const parent = canvasRef.current.parentElement;
+                
+                // Only resize if the dimensions actually changed
+                if (parent && (canvasRef.current.width !== parent.clientWidth || canvasRef.current.height !== parent.clientHeight)) {
+                    canvasRef.current.width = parent.clientWidth;
+                    canvasRef.current.height = parent.clientHeight;
+                    drawCanvas();
+                }
+            }
+        };
+
         if (isOpen) {
             document.body.style.overflow = 'hidden';
 
@@ -38,22 +48,26 @@ export default function FloorPlanModal({ projectId, isOpen, onClose, onSaveSucce
                 };
             }
 
+            // Initial resize
             setTimeout(() => {
-                if (canvasRef.current) {
-                    canvasRef.current.width = INTERNAL_WIDTH;
-                    canvasRef.current.height = INTERNAL_HEIGHT;
-                    drawCanvas();
-                }
+                resizeCanvas();
             }, 100);
+
+            // Add resize listener to handle window resize smoothly
+            const handleResize = () => {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(resizeCanvas, 100);
+            };
+            window.addEventListener('resize', handleResize);
+
+            return () => {
+                window.removeEventListener('resize', handleResize);
+            };
         } else {
             document.body.style.overflow = 'unset';
-            // Reset state on close if needed, but keeping it might be better?
-            // For now let's keep elements but maybe reset if a new project is loaded.
-            // Actually, we should probably reset elements when reopening.
-            // But let's stick to the request: edit existing.
+            // Optional: reset on close
         }
-        return () => { document.body.style.overflow = 'unset'; };
-    }, [isOpen, initialImageUrl]);
+    }, [isOpen, initialImageUrl, backgroundImage]);
 
     useEffect(() => {
         if (isOpen) drawCanvas();
@@ -129,7 +143,26 @@ export default function FloorPlanModal({ projectId, isOpen, onClose, onSaveSucce
 
         // Draw background image if exists
         if (backgroundImage) {
-            ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
+            // Draw image preserving aspect ratio centered if dimensions mismatch
+            const imgAspect = backgroundImage.width / backgroundImage.height;
+            const canvasAspect = canvas.width / canvas.height;
+            let drawWidth, drawHeight, drawX, drawY;
+
+            if (canvasAspect > imgAspect) {
+                // Canvas is wider than image relative to height
+                drawHeight = canvas.height;
+                drawWidth = backgroundImage.width * (canvas.height / backgroundImage.height);
+                drawX = (canvas.width - drawWidth) / 2;
+                drawY = 0;
+            } else {
+                // Canvas is taller than image relative to width
+                drawWidth = canvas.width;
+                drawHeight = backgroundImage.height * (canvas.width / backgroundImage.width);
+                drawX = 0;
+                drawY = (canvas.height - drawHeight) / 2;
+            }
+            
+            ctx.drawImage(backgroundImage, drawX, drawY, drawWidth, drawHeight);
         }
 
         if (!exportMode) drawGrid(ctx, canvas);
@@ -223,24 +256,59 @@ export default function FloorPlanModal({ projectId, isOpen, onClose, onSaveSucce
     const saveToProject = async () => {
         if (isSaving) return;
         setIsSaving(true);
+        console.log("Start saving floor plan...");
+        
         try {
             drawCanvas(true);
-            canvasRef.current.toBlob(async (blob) => {
-                drawCanvas(false);
-                if (!blob) { showToast('Hiba a kép generálásakor', 'error'); setIsSaving(false); return; }
-                const formData = new FormData();
-                formData.append('projectId', projectId);
-                formData.append('photoType', 'floor_plan');
-                formData.append('photo', blob, `floor_plan_${Date.now()}.png`);
+            
+            // Wrap toBlob in a promise so we can await it
+            const getBlob = () => new Promise((resolve, reject) => {
                 try {
-                    await uploadsAPI.uploadPhoto(formData);
-                    showToast('Alaprajz sikeresen mentve!', 'success');
-                    if (onSaveSuccess) onSaveSuccess();
-                    onClose();
-                } catch (error) { console.error(error); showToast('Hiba a mentés során', 'error'); }
-                finally { setIsSaving(false); }
-            }, 'image/png');
-        } catch (error) { console.error(error); setIsSaving(false); showToast('Váratlan hiba történt', 'error'); }
+                    canvasRef.current.toBlob((blob) => {
+                        if (blob) resolve(blob);
+                        else reject(new Error("Hiba a kép generálásakor (üres eredmény)"));
+                    }, 'image/png');
+                } catch (e) {
+                    reject(e);
+                }
+            });
+
+            // Set a timeout for blob generation just in case canvas hangs
+            const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error("Kép mentés időtúllépés (több mint 5 mp)")), 5000)
+            );
+
+            console.log("Generating blob...");
+            const blob = await Promise.race([getBlob(), timeoutPromise]);
+            console.log("Blob generated, size:", blob.size);
+
+            drawCanvas(false);
+            
+            const formData = new FormData();
+            formData.append('projectId', projectId);
+            formData.append('photoType', photoType);
+            formData.append('photo', blob, `${photoType}_${Date.now()}.png`);
+            
+            console.log("Uploading photo...");
+            await uploadsAPI.uploadPhoto(formData);
+            
+            showToast('Alaprajz sikeresen mentve!', 'success');
+            if (onSaveSuccess) onSaveSuccess();
+            onClose();
+
+        } catch (error) { 
+            console.error("FloorPlanModal mentési hiba:", error); 
+            drawCanvas(false);
+            
+            let errorMessage = error.message || 'Váratlan hiba';
+            if (error.response?.data?.error) {
+                const errData = error.response.data.error;
+                errorMessage = typeof errData === 'object' ? errData.message : String(errData);
+            }
+            showToast(`Mentési hiba: ${errorMessage}`, 'error'); 
+        } finally { 
+            setIsSaving(false); 
+        }
     };
 
     if (!isOpen) return null;
@@ -297,7 +365,7 @@ export default function FloorPlanModal({ projectId, isOpen, onClose, onSaveSucce
                 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <Maximize2 size={22} />
-                        <span style={{ fontSize: '18px', fontWeight: 600 }}>Alaprajz Tervező</span>
+                        <span style={{ fontSize: '18px', fontWeight: 600 }}>{title}</span>
                     </div>
                     <button
                         onClick={onClose}
@@ -371,7 +439,7 @@ export default function FloorPlanModal({ projectId, isOpen, onClose, onSaveSucce
                         </button>
                     </div>
 
-                    {/* Canvas Area - Scrollable if needed */}
+                    {/* Canvas Area - Dynamic scaling */}
                     <div style={{
                         flex: 1,
                         display: 'flex',
@@ -379,15 +447,17 @@ export default function FloorPlanModal({ projectId, isOpen, onClose, onSaveSucce
                         justifyContent: 'center',
                         padding: '16px',
                         background: '#f1f5f9',
-                        overflow: 'auto'
+                        overflow: 'hidden' // Removed overflow: 'auto' so there are no scrollbars!
                     }}>
                         <div style={{
                             background: '#fff',
                             borderRadius: '8px',
                             boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
                             border: '1px solid #e2e8f0',
-                            maxWidth: '100%',
-                            maxHeight: '100%'
+                            width: '100%',
+                            height: '100%',
+                            display: 'flex',
+                            position: 'relative'
                         }}>
                             <canvas
                                 ref={canvasRef}
@@ -401,11 +471,11 @@ export default function FloorPlanModal({ projectId, isOpen, onClose, onSaveSucce
                                 style={{
                                     display: 'block',
                                     width: '100%',
-                                    height: 'auto',
-                                    maxHeight: '100%',
+                                    height: '100%',
                                     cursor: 'crosshair',
                                     touchAction: 'none',
-                                    borderRadius: '8px'
+                                    borderRadius: '8px',
+                                    outline: 'none'
                                 }}
                             />
                         </div>

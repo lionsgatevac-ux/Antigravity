@@ -195,4 +195,27 @@ router.get('/photos/:projectId', async (req, res, next) => {
     }
 });
 
+// DELETE photos by project and type (e.g., floor_plan)
+router.delete('/photos/:projectId/:photoType', async (req, res, next) => {
+    try {
+        const { projectId, photoType } = req.params;
+        
+        console.log(`[Upload-Debug] Deleting photos for project ${projectId} and type ${photoType}`);
+        
+        const result = await query(
+            'DELETE FROM photos WHERE project_id = $1 AND photo_type = $2 RETURNING *',
+            [projectId, photoType]
+        );
+
+        res.json({
+            success: true,
+            message: `${result.rowCount} fotó törölve`,
+            data: result.rows
+        });
+    } catch (error) {
+        console.error('[Upload-Debug] Error deleting photos:', error);
+        next(error);
+    }
+});
+
 module.exports = router;

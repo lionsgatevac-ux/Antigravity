@@ -19,7 +19,20 @@ const MainLayout = ({ children }) => {
                         <nav className="nav">
                             <Link to="/" className="nav-link">Kezdőlap</Link>
                             <Link to="/new-project" className="nav-link">Új Projekt</Link>
-                            <Link to="/projects" className="nav-link">Projektek</Link>
+
+                            <div className="nav-dropdown">
+                                <div className="nav-link dropdown-trigger">
+                                    Raktár <span>▼</span>
+                                </div>
+                                <div className="dropdown-content">
+                                    <Link to="/inventory" className="dropdown-item">Készlet</Link>
+                                    <Link to="/handover" className="dropdown-item">Anyagkiadás</Link>
+                                    <Link to="/pending-handovers" className="dropdown-item">Átvétel</Link>
+                                    <Link to="/stock-history" className="dropdown-item">Mozgások</Link>
+                                </div>
+                            </div>
+
+                            <Link to="/handovers-history" className="nav-link">Dokumentumok</Link>
                             {user?.role === 'admin' && (
                                 <>
                                     <Link to="/invite" className="nav-link">Meghívás</Link>
@@ -30,6 +43,10 @@ const MainLayout = ({ children }) => {
                                 Kilépés
                             </button>
                         </nav>
+                        <div className="user-display" style={{ color: 'white', marginRight: '10px' }}>
+                            <small>Bejelentkezve:</small><br />
+                            <strong>{user?.full_name || user?.email}</strong>
+                        </div>
                         <div className={`status-indicator ${isOnline ? 'online' : 'offline'}`}>
                             {isOnline ? '🟢 Online' : '🔴 Offline'}
                         </div>

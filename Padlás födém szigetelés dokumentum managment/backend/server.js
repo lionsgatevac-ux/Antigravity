@@ -1,15 +1,18 @@
-// Server restart trigger v2
+// Server restart trigger v3 - DEBUG NO EXIT
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
 const dotenv = require('dotenv');
 const path = require('path');
+const helmet = require('helmet');
+
 
 // Load environment variables
 dotenv.config();
 
 // Import routes
 const projectRoutes = require('./routes/projects');
+const publicRoutes = require('./routes/public');
 const customerRoutes = require('./routes/customers');
 const documentRoutes = require('./routes/documents');
 const uploadRoutes = require('./routes/uploads');
@@ -24,8 +27,12 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 
 // Middleware
+app.use(helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false
+}));
 app.use(cors({
-    origin: true, // Allow all origins including same-origin
+    origin: true,
     credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
@@ -39,7 +46,6 @@ app.use('/generated', express.static(path.join(__dirname, 'generated'), {
         const fileName = path.basename(filePath);
         res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-        // CRITICAL: Disable ALL caching to ensure fresh files are always served
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
         res.setHeader('Pragma', 'no-cache');
         res.setHeader('Expires', '0');
@@ -59,7 +65,8 @@ app.use(express.static(path.join(__dirname, '../frontend/dist'), {
 
 // API Routes
 app.use('/api/auth', require('./routes/auth'));
-app.use('/api/projects', require('./routes/projects')); // Protection inside routes or here?
+app.use('/api/projects', projectRoutes);
+app.use('/api/public', publicRoutes);
 app.use('/api/customers', require('./routes/customers'));
 app.use('/api/documents', require('./routes/documents'));
 app.use('/api/uploads', require('./routes/uploads'));
@@ -67,9 +74,9 @@ app.use('/api/stats', require('./routes/stats'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/remote', require('./routes/remote'));
 app.use('/api/materials', require('./routes/materials'));
+app.use('/api/inventory', require('./routes/inventory'));
 
 // Health check
-// DEBUG ROUTE for Database Connection (Placed here to avoid wildcard shadowing)
 app.get('/api/debug-db', async (req, res) => {
     const db = require('./config/database');
     try {
@@ -88,7 +95,6 @@ app.get('/api/debug-db', async (req, res) => {
             status: 'ERROR',
             message: 'Database connection failed',
             error: err.message,
-            stack: err.stack,
             env: {
                 node_env: process.env.NODE_ENV,
                 has_db_url: !!process.env.DATABASE_URL
@@ -101,15 +107,16 @@ app.get('/api/health', (req, res) => {
     res.json({
         status: 'OK',
         timestamp: new Date().toISOString(),
-        environment: process.env.NODE_ENV
+        environment: process.env.NODE_ENV,
+        has_jwt: !!process.env.JWT_SECRET
     });
 });
 
 app.get('/api/version', (req, res) => {
     res.json({
-        version: '2.1',
+        version: '2.3',
         timestamp: new Date().toISOString(),
-        note: 'SignaturePad + New Doc Type'
+        note: 'Debug Env + No Exit'
     });
 });
 
@@ -118,57 +125,29 @@ app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
 });
 
-// Error handling middleware (must be last)
+// Error handling middleware
 app.use(errorHandler);
 
 // Start server
-console.log(`[Server] Starting application...`);
-console.log(`[Server] Port configured as: ${PORT}`);
-
-
-
+console.log('[Server] Starting application...');
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Backend server running on http://localhost:${PORT} (v2.2 - Production)`);
-    console.log(`📝 Environment: ${process.env.NODE_ENV}`);
-    console.log(`🗄️  Database: ${process.env.DATABASE_URL ? 'Connected' : 'Not configured'}`);
-    console.log(`🔑 Supabase URL: ${process.env.SUPABASE_URL ? 'Set' : 'MISSING'}`);
-    console.log(`🔑 Supabase Key: ${process.env.SUPABASE_KEY ? 'Set' : 'MISSING'}`);
+    console.log(`Backend server running on http://localhost:${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV}`);
+    console.log(`DEBUG: JWT_SECRET presence: ${!!process.env.JWT_SECRET}`);
+    console.log(`DEBUG: Available keys: ${Object.keys(process.env).filter(k => !k.includes('KEY') && !k.includes('SECRET')).join(', ')}`);
 
-    // Verify database connection on startup
-    const db = require('./config/database');
-
-    // DEBUG: Check static files
-    const fs = require('fs');
-    const frontendPath = path.join(__dirname, '../frontend/dist');
-    const indexPath = path.join(frontendPath, 'index.html');
-
-    console.log('🔍 DEBUG: Current __dirname:', __dirname);
-    console.log('🔍 DEBUG: Target frontend path:', frontendPath);
-
-    try {
-        if (fs.existsSync(frontendPath)) {
-            console.log('✅ Frontend dist folder exists');
-            const files = fs.readdirSync(frontendPath);
-            console.log('📂 Files in dist:', files);
-        } else {
-            console.error('❌ Frontend dist folder MISSING at:', frontendPath);
-        }
-
-        if (fs.existsSync(indexPath)) {
-            console.log('✅ index.html found');
-        } else {
-            console.error('❌ index.html MISSING');
-        }
-    } catch (err) {
-        console.error('❌ filesystem check error:', err);
+    // Removed process.exit(1) to debug
+    if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
+        console.error('WARNING: JWT_SECRET is missing in PRODUCTION but NOT exiting (DEBUG MODE)');
     }
 
+    const db = require('./config/database');
     db.query('SELECT NOW()')
         .then(result => {
-            console.log('✅ Database connected successfully at:', result.rows[0].now);
+            console.log('Database connected successfully at:', result.rows[0].now);
         })
         .catch(err => {
-            console.error('❌ Database connection FAILED:', err.message);
+            console.error('Database connection FAILED:', err.message);
         });
 });
 

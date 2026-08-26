@@ -91,7 +91,7 @@ router.post('/generate', async (req, res, next) => {
         // Prepare data for template
         const templateData = {
             contract_number: projectData.contract_number,
-            contract_date: new Date(),
+            contract_date: projectData.created_at || new Date(),
             customer_name: projectData.full_name,
             customer_birth_name: projectData.birth_name,
             customer_mother_name: projectData.mother_name,

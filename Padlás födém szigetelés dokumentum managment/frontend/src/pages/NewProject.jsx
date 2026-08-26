@@ -593,40 +593,7 @@ const NewProject = () => {
                         <TestButton />
                         <h2>2. Ingatlan Adatok</h2>
 
-                        <div className="form-row">
-                            <div className="form-group">
-                                <label className="form-label">Munka megkezdése (óra)</label>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    max="23"
-                                    value={formData.details.work_hour_start}
-                                    onChange={(e) => handleInputChange('details', 'work_hour_start', e.target.value)}
-                                    placeholder="9"
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">Munka befejezése (óra)</label>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    max="23"
-                                    value={formData.details.work_hour_end}
-                                    onChange={(e) => handleInputChange('details', 'work_hour_end', e.target.value)}
-                                    placeholder="16"
-                                />
-                            </div>
-                        </div>
 
-                        <div className="form-group">
-                            <label className="form-label">Kivitelezés dátuma</label>
-                            <input
-                                type="date"
-                                value={formData.details.execution_date || (formData.customer.address_postal_code ? new Date().toISOString().split('T')[0] : '')}
-                                onChange={(e) => handleInputChange('details', 'execution_date', e.target.value)}
-                            />
-                            <small className="text-muted">Alapértelmezetten a szerződéskötés napja</small>
-                        </div>
 
                         <div className="form-group">
                             <label className="form-label">HRSZ *</label>
@@ -725,6 +692,19 @@ const NewProject = () => {
                                     />
                                 </div>
                             )}
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">Az épület fűtésének típusa</label>
+                            <select value={formData.property.heating_type} onChange={(e) => handleInputChange('property', 'heating_type', e.target.value)}>
+                                <option value="gáz készülék">Gáz készülék</option>
+                                <option value="vegyes tüzelés">Vegyes tüzelés</option>
+                                <option value="fa fűtés">Fa fűtés</option>
+                                <option value="elektromos fűtés">Elektromos fűtés</option>
+                                <option value="klíma">Klíma</option>
+                                <option value="hőszivattyú">Hőszivattyú</option>
+                                <option value="egyéb">Egyéb</option>
+                            </select>
                         </div>
 
                         <div className="form-group">
@@ -1065,6 +1045,42 @@ const NewProject = () => {
                                     );
                                 }
                             })()}
+                        </div>
+
+                        <div className="section-divider" style={{ margin: '2rem 0', borderTop: '1px solid #e5e7eb' }}></div>
+                        <h3>Időpontok:</h3>
+                        <div className="form-row">
+                            <div className="form-group">
+                                <label className="form-label">Kivitelezés dátuma</label>
+                                <input
+                                    type="date"
+                                    value={formData.details.execution_date || (formData.customer.address_postal_code ? new Date().toISOString().split('T')[0] : '')}
+                                    onChange={(e) => handleInputChange('details', 'execution_date', e.target.value)}
+                                />
+                                <small className="text-muted">Alapértelmezetten a szerződéskötés napja</small>
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">Munka megkezdése (óra)</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    max="23"
+                                    value={formData.details.work_hour_start}
+                                    onChange={(e) => handleInputChange('details', 'work_hour_start', e.target.value)}
+                                    placeholder="9"
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">Munka befejezése (óra)</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    max="23"
+                                    value={formData.details.work_hour_end}
+                                    onChange={(e) => handleInputChange('details', 'work_hour_end', e.target.value)}
+                                    placeholder="16"
+                                />
+                            </div>
                         </div>
 
                         <div className="calculated-field">

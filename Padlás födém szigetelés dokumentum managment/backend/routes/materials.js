@@ -6,7 +6,7 @@ const { query } = require('../config/database');
 router.get('/', async (req, res, next) => {
     try {
         const result = await query(
-            'SELECT id, category, name, is_default FROM materials ORDER BY category, name'
+            'SELECT id, category, name, is_default, coverage, unit FROM materials ORDER BY category, name'
         );
 
         // Group by category
@@ -18,7 +18,7 @@ router.get('/', async (req, res, next) => {
 
         result.rows.forEach(row => {
             if (grouped[row.category]) {
-                grouped[row.category].push(row.name);
+                grouped[row.category].push(row);
             }
         });
 
@@ -28,8 +28,10 @@ router.get('/', async (req, res, next) => {
     }
 });
 
+const authMiddleware = require('../middleware/authMiddleware');
+
 // POST new material
-router.post('/', async (req, res, next) => {
+router.post('/', authMiddleware, async (req, res, next) => {
     try {
         const { category, name } = req.body;
 

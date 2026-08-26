@@ -90,6 +90,7 @@ class Project {
               pr.address_street as property_street, pr.address_house_number as property_house_number,
               pr.hrsz, pr.building_year, pr.building_type,
               pr.structure_type, pr.structure_thickness,
+              pr.heating_type, pr.roof_type, pr.roof_thickness,
               pr.unheated_space_type, pr.unheated_space_area, pr.unheated_space_name,
               p.customer_signature_data, p.contractor_signature_data,
               p.customer_signed_at, p.contractor_signed_at,
@@ -156,14 +157,23 @@ class Project {
     static async generateContractNumber() {
         const year = new Date().getFullYear();
         const result = await query(
-            "SELECT contract_number FROM projects WHERE contract_number LIKE $1 ORDER BY created_at DESC LIMIT 1",
+            "SELECT contract_number FROM projects WHERE contract_number LIKE $1",
             [`BOZSO-${year}-%`]
         );
 
         let nextNumber = 100;
         if (result.rows.length > 0) {
-            const lastNumber = parseInt(result.rows[0].contract_number.split('-')[2]);
-            nextNumber = lastNumber + 1;
+            let maxNumber = 99;
+            for (const row of result.rows) {
+                const parts = row.contract_number.split('-');
+                if (parts.length >= 3) {
+                    const num = parseInt(parts[2], 10);
+                    if (!isNaN(num) && num > maxNumber) {
+                        maxNumber = num;
+                    }
+                }
+            }
+            nextNumber = maxNumber + 1;
         }
 
         return `BOZSO-${year}-${String(nextNumber).padStart(4, '0')}`;

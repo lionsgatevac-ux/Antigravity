@@ -8,7 +8,7 @@ let currentConfig = null;
 const getFrontendUrl = () => {
     if (process.env.FRONTEND_URL) return process.env.FRONTEND_URL;
     if (process.env.NODE_ENV === 'production' || process.env.K_SERVICE) {
-        return 'https://padlas-fodem-szigeteles-wccgabnluq-ew.a.run.app';
+        return 'https://padlas-fodem-szigeteles-673616702762.europe-west1.run.app';
     }
     return 'http://localhost:5173';
 };

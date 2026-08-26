@@ -282,4 +282,18 @@ router.get('/me', authMiddleware, async (req, res) => {
     }
 });
 
+// List all users (protected)
+router.get('/users', authMiddleware, async (req, res) => {
+    try {
+        console.log('[API] /users endpoint hit by user:', req.user.email);
+        const result = await query('SELECT id, email, full_name, role FROM users ORDER BY full_name');
+        console.log('[API] /users found rows:', result.rows.length);
+        console.log('[API] /users data:', JSON.stringify(result.rows.map(u => u.email)));
+        res.json({ success: true, data: result.rows });
+    } catch (error) {
+        console.error('Error fetching users:', error);
+        res.status(500).json({ success: false, error: 'Server error' });
+    }
+});
+
 module.exports = router;

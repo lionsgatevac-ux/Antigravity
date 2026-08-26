@@ -6,7 +6,7 @@ set PROJECT_ID=padlas-fodem-szigeteles
 set SERVICE_NAME=padlas-fodem-szigeteles
 set REGION=europe-west1
 set IMAGE_NAME=europe-west1-docker.pkg.dev/%PROJECT_ID%/cloud-run-source-deploy/%SERVICE_NAME%
-set VERSION=v55_antigravity
+set VERSION=v60_heating_fix
 
 echo 🔨 Building Container...
 call gcloud builds submit --tag "%IMAGE_NAME%:%VERSION%" --timeout=15m .
@@ -25,4 +25,3 @@ if %errorlevel% neq 0 (
 )
 
 echo ✅ Deployment Success!
-pause

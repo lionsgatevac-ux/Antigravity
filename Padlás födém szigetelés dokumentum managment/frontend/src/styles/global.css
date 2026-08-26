@@ -228,6 +228,13 @@ select:focus {
   box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
 }
 
+select option {
+  font-size: 1rem;
+  padding: 0.5rem;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
 /* Form groups */
 .form-group {
   margin-bottom: var(--spacing-lg);

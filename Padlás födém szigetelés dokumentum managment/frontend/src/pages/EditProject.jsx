@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { CheckCircle, Save, Plus, ArrowLeft, PenTool } from 'lucide-react';
-import { projectsAPI, materialsAPI } from '../services/api';
+import { CheckCircle, Save, Plus, ArrowLeft, PenTool, Trash2 } from 'lucide-react';
+import { projectsAPI, materialsAPI, uploadsAPI } from '../services/api';
 import { useApp } from '../context/AppContext';
 import { calculateNetArea, calculateEnergySaving, calculateContractorFee, formatCurrency } from '../utils/calculations';
 import { validateForm, required, email, phone, positiveNumber } from '../utils/validation';
@@ -155,9 +155,9 @@ const EditProject = () => {
                     labor_cost: project.labor_cost || '0',
                     hem_value: project.hem_value || '0',
                     government_support: project.government_support || '0',
-                    insulation_type: (typeof project.insulation_type === 'object' ? String(project.insulation_type.name || '') : String(project.insulation_type || 'Thermowool Basic üveggyapot tekercs (0.039)')),
-                    vapor_barrier_type: (typeof project.vapor_barrier_type === 'object' ? String(project.vapor_barrier_type.name || '') : String(project.vapor_barrier_type || '')),
-                    breathable_membrane_type: (typeof project.breathable_membrane_type === 'object' ? String(project.breathable_membrane_type.name || '') : String(project.breathable_membrane_type || '')),
+                    insulation_type: (project.insulation_type && typeof project.insulation_type === 'object' ? String(project.insulation_type.name || '') : String(project.insulation_type || 'Thermowool Basic üveggyapot tekercs (0.039)')),
+                    vapor_barrier_type: (project.vapor_barrier_type && typeof project.vapor_barrier_type === 'object' ? String(project.vapor_barrier_type.name || '') : String(project.vapor_barrier_type || '')),
+                    breathable_membrane_type: (project.breathable_membrane_type && typeof project.breathable_membrane_type === 'object' ? String(project.breathable_membrane_type.name || '') : String(project.breathable_membrane_type || '')),
                     // Attic Declaration Mapping
                     attic_door_insulated: project.attic_door_insulated === true, // Ensure boolean
                     pf_kivul_fodemen: project.pf_kivul_fodemen || false,
@@ -189,7 +189,7 @@ const EditProject = () => {
 
                 categories.forEach(cat => {
                     const projectRaw = project[`${cat}_type`];
-                    const projectVal = typeof projectRaw === 'object' ? String(projectRaw.name || '') : String(projectRaw || '');
+                    const projectVal = (projectRaw && typeof projectRaw === 'object') ? String(projectRaw.name || '') : String(projectRaw || '');
 
                     if (projectVal) {
                         const exists = newOptions[cat].some(opt => (typeof opt === 'string' ? opt : opt.name) === projectVal);
@@ -371,6 +371,33 @@ const EditProject = () => {
         return validation.isValid;
     };
 
+    const handleDeleteFloorPlan = async (photoType) => {
+        const confirmMsg = photoType === 'floor_plan'
+            ? 'Biztosan törölni szeretné az alaprajzot?'
+            : 'Biztosan törölni szeretné a kiegészítő alaprajzot?';
+
+        if (window.confirm(confirmMsg)) {
+            try {
+                setLoading(true);
+                const response = await uploadsAPI.deletePhoto(id, photoType);
+                if (response.success) {
+                    showToast('Alaprajz sikeresen törölve!', 'success');
+                    if (photoType === 'floor_plan') {
+                        setFloorPlanUrl(null);
+                    } else {
+                        setFloorPlanPlusUrl(null);
+                    }
+                    await loadProject(); // Refresh to be safe
+                }
+            } catch (error) {
+                console.error('Error deleting floor plan:', error);
+                showToast('Hiba a törlés során', 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+    };
+
     const handleSubmit = async () => {
         if (!validateStep(step)) {
             showToast('Kérjük, töltse ki a kötelező mezőket', 'error');
@@ -500,40 +527,7 @@ const EditProject = () => {
                     <div className="form-section">
                         <h2>2. Ingatlan Adatok</h2>
 
-                        <div className="form-row">
-                            <div className="form-group">
-                                <label className="form-label">Munka megkezdése (óra)</label>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    max="23"
-                                    value={formData.details.work_hour_start}
-                                    onChange={(e) => handleInputChange('details', 'work_hour_start', e.target.value)}
-                                    placeholder="9"
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">Munka befejezése (óra)</label>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    max="23"
-                                    value={formData.details.work_hour_end}
-                                    onChange={(e) => handleInputChange('details', 'work_hour_end', e.target.value)}
-                                    placeholder="16"
-                                />
-                            </div>
-                        </div>
 
-                        <div className="form-group">
-                            <label className="form-label">Kivitelezés dátuma</label>
-                            <input
-                                type="date"
-                                value={formData.details.execution_date}
-                                onChange={(e) => handleInputChange('details', 'execution_date', e.target.value)}
-                            />
-                            <small className="text-muted">Alapértelmezetten a szerződéskötés napja</small>
-                        </div>
 
                         <div className="form-group">
                             <label className="form-label">HRSZ *</label>
@@ -863,6 +857,42 @@ const EditProject = () => {
                             })()}
                         </div>
 
+                        <div className="section-divider" style={{ margin: '2rem 0', borderTop: '1px solid #e5e7eb' }}></div>
+                        <h3>Időpontok:</h3>
+                        <div className="form-row">
+                            <div className="form-group">
+                                <label className="form-label">Kivitelezés dátuma</label>
+                                <input
+                                    type="date"
+                                    value={formData.details.execution_date}
+                                    onChange={(e) => handleInputChange('details', 'execution_date', e.target.value)}
+                                />
+                                <small className="text-muted">Alapértelmezetten a szerződéskötés napja</small>
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">Munka megkezdése (óra)</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    max="23"
+                                    value={formData.details.work_hour_start}
+                                    onChange={(e) => handleInputChange('details', 'work_hour_start', e.target.value)}
+                                    placeholder="9"
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">Munka befejezése (óra)</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    max="23"
+                                    value={formData.details.work_hour_end}
+                                    onChange={(e) => handleInputChange('details', 'work_hour_end', e.target.value)}
+                                    placeholder="16"
+                                />
+                            </div>
+                        </div>
+
                         <div className="calculated-field">
                             <label className="form-label">Nettó szigetelt terület</label>
                             <div className="calculated-value">{String(formData.details.net_area)} m²</div>
@@ -899,15 +929,28 @@ const EditProject = () => {
                                 </div>
                             )}
 
-                            <button
-                                type="button"
-                                onClick={() => setShowFloorPlanModal(true)}
-                                className="btn btn-primary w-full flex items-center justify-center gap-2"
-                                style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
-                            >
-                                <PenTool size={18} style={{ marginRight: '8px' }} />
-                                {floorPlanUrl ? 'Alaprajz Szerkesztése (V2)' : 'Új Alaprajz Készítése (V2)'}
-                            </button>
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowFloorPlanModal(true)}
+                                    className="btn btn-primary flex-1 flex items-center justify-center gap-2"
+                                    style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+                                >
+                                    <PenTool size={18} style={{ marginRight: '8px' }} />
+                                    {floorPlanUrl ? 'Szerkesztés' : 'Új Alaprajz'}
+                                </button>
+                                {floorPlanUrl && (
+                                    <button
+                                        type="button"
+                                        onClick={() => handleDeleteFloorPlan('floor_plan')}
+                                        className="btn btn-danger"
+                                        style={{ backgroundColor: '#ef4444', color: 'white', padding: '10px' }}
+                                        title="Törlés"
+                                    >
+                                        <Trash2 size={18} />
+                                    </button>
+                                )}
+                            </div>
                         </div>
 
                         {/* SECOND FLOOR PLAN SECTION */}
@@ -932,15 +975,28 @@ const EditProject = () => {
                                 </div>
                             )}
 
-                            <button
-                                type="button"
-                                onClick={() => setShowFloorPlanPlusModal(true)}
-                                className="btn btn-secondary w-full flex items-center justify-center gap-2"
-                                style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#6366f1', color: 'white' }}
-                            >
-                                <PenTool size={18} style={{ marginRight: '8px' }} />
-                                {floorPlanPlusUrl ? 'Kiegészítő Alaprajz Szerkesztése' : 'Új Kiegészítő Alaprajz'}
-                            </button>
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowFloorPlanPlusModal(true)}
+                                    className="btn btn-secondary flex-1 flex items-center justify-center gap-2"
+                                    style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#6366f1', color: 'white' }}
+                                >
+                                    <PenTool size={18} style={{ marginRight: '8px' }} />
+                                    {floorPlanPlusUrl ? 'Szerkesztés' : 'Új Kiegészítő'}
+                                </button>
+                                {floorPlanPlusUrl && (
+                                    <button
+                                        type="button"
+                                        onClick={() => handleDeleteFloorPlan('floor_plan_plus')}
+                                        className="btn btn-danger"
+                                        style={{ backgroundColor: '#ef4444', color: 'white', padding: '10px' }}
+                                        title="Törlés"
+                                    >
+                                        <Trash2 size={18} />
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     </div>
                 )}
